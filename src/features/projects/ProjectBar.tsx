@@ -1,5 +1,17 @@
-import { useRef, useState, type ChangeEvent } from 'react'
-import { ArrowLeft, Check, FileJson, FileText, Image, Loader2, Save, Upload } from 'lucide-react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  Download,
+  FileJson,
+  FileText,
+  Image,
+  Loader2,
+  Save,
+  Share2,
+  Upload,
+} from 'lucide-react'
 import { useProjectSessionStore } from '@/store/projectSessionStore'
 import { useExportStore } from '@/store/exportStore'
 import { useCanvasStore } from '@/store/canvasStore'
@@ -22,9 +34,22 @@ export function ProjectBar() {
   const loadSnapshot = useCanvasStore((s) => s.loadSnapshot)
   const pushHistory = useCanvasStore((s) => s.pushHistory)
   const importInputRef = useRef<HTMLInputElement>(null)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
+  const [exportMenuOpen, setExportMenuOpen] = useState(false)
   const [jsonError, setJsonError] = useState<string | null>(null)
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!exportMenuOpen) return
+    const onClickOutside = (e: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) setExportMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [exportMenuOpen])
 
   const handleExportJson = () => {
+    setExportMenuOpen(false)
     setJsonError(null)
     const ok = exportProjectToJson(getSnapshot(), currentProjectName)
     if (!ok) setJsonError('El plano está vacío, no hay nada que exportar.')
@@ -43,6 +68,29 @@ export function ProjectBar() {
     } catch (err) {
       setJsonError(err instanceof Error ? err.message : 'No se pudo importar ese archivo.')
     }
+  }
+
+  const handleShare = async () => {
+    const shareData = {
+      title: 'INDUSTRIPLAN',
+      text: `Estoy trabajando en "${currentProjectName}" en INDUSTRIPLAN.`,
+      url: window.location.origin,
+    }
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData)
+      } catch {
+        // El usuario canceló el diálogo de compartir; no es un error.
+      }
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(shareData.url)
+      setShareFeedback('¡Enlace copiado!')
+    } catch {
+      setShareFeedback('No se pudo copiar el enlace.')
+    }
+    setTimeout(() => setShareFeedback(null), 2000)
   }
 
   return (
@@ -73,34 +121,51 @@ export function ProjectBar() {
 
       <div className="mx-0.5 h-5 w-px bg-surface-border" />
 
-      <button
-        onClick={() => requestExport('png')}
-        disabled={exporting}
-        title="Exportar como imagen PNG"
-        className="flex h-7 items-center gap-1.5 rounded-md border border-surface-border px-2.5 text-xs font-medium text-text-secondary transition-colors duration-150 hover:border-accent hover:text-accent disabled:opacity-60"
-      >
-        {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Image className="h-3.5 w-3.5" />}
-        PNG
-      </button>
+      <div ref={exportMenuRef} className="relative">
+        <button
+          onClick={() => setExportMenuOpen((o) => !o)}
+          disabled={exporting}
+          title="Exportar el plano"
+          aria-pressed={exportMenuOpen}
+          className="flex h-7 items-center gap-1.5 rounded-md border border-surface-border px-2.5 text-xs font-medium text-text-secondary transition-colors duration-150 hover:border-accent hover:text-accent disabled:opacity-60"
+        >
+          {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+          Exportar
+          <ChevronDown className="h-3 w-3" />
+        </button>
 
-      <button
-        onClick={() => requestExport('pdf')}
-        disabled={exporting}
-        title="Exportar como PDF"
-        className="flex h-7 items-center gap-1.5 rounded-md border border-surface-border px-2.5 text-xs font-medium text-text-secondary transition-colors duration-150 hover:border-accent hover:text-accent disabled:opacity-60"
-      >
-        {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-        PDF
-      </button>
-
-      <button
-        onClick={handleExportJson}
-        title="Exportar como JSON (para seguir editando después o en otra compu)"
-        className="flex h-7 items-center gap-1.5 rounded-md border border-surface-border px-2.5 text-xs font-medium text-text-secondary transition-colors duration-150 hover:border-accent hover:text-accent"
-      >
-        <FileJson className="h-3.5 w-3.5" />
-        JSON
-      </button>
+        {exportMenuOpen && (
+          <div className="absolute top-full left-0 z-20 mt-1 w-40 rounded-md border border-surface-border bg-surface-alt py-1 shadow-lg">
+            <button
+              onClick={() => {
+                setExportMenuOpen(false)
+                requestExport('png')
+              }}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors duration-150 hover:bg-accent-soft hover:text-accent"
+            >
+              <Image className="h-3.5 w-3.5" />
+              Imagen PNG
+            </button>
+            <button
+              onClick={() => {
+                setExportMenuOpen(false)
+                requestExport('pdf')
+              }}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors duration-150 hover:bg-accent-soft hover:text-accent"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              Documento PDF
+            </button>
+            <button
+              onClick={handleExportJson}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors duration-150 hover:bg-accent-soft hover:text-accent"
+            >
+              <FileJson className="h-3.5 w-3.5" />
+              Datos JSON
+            </button>
+          </div>
+        )}
+      </div>
 
       <button
         onClick={() => importInputRef.current?.click()}
@@ -112,7 +177,18 @@ export function ProjectBar() {
       </button>
       <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportJson} />
 
-      {jsonError ? (
+      <button
+        onClick={handleShare}
+        title="Compartir INDUSTRIPLAN"
+        className="flex h-7 items-center gap-1.5 rounded-md border border-surface-border px-2.5 text-xs font-medium text-text-secondary transition-colors duration-150 hover:border-accent hover:text-accent"
+      >
+        <Share2 className="h-3.5 w-3.5" />
+        Compartir
+      </button>
+
+      {shareFeedback ? (
+        <span className="text-[10px] text-accent">{shareFeedback}</span>
+      ) : jsonError ? (
         <span className="text-[10px] text-danger">{jsonError}</span>
       ) : exportError ? (
         <span className="text-[10px] text-danger">{exportError}</span>
