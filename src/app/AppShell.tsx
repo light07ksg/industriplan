@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight, Factory, Settings, User as UserIcon } from 'lucide-react'
+import { Suspense, lazy, useEffect, useState } from 'react'
+import { ChevronLeft, ChevronRight, Factory, Loader2, Settings, User as UserIcon } from 'lucide-react'
 import { useThemeStore } from '@/store/themeStore'
 import { useUIStore } from '@/store/uiStore'
 import { useAuthStore } from '@/store/authStore'
@@ -13,6 +13,10 @@ import { SymbolLibrary } from '@/features/symbols/SymbolLibrary'
 import { RightSidebar } from '@/features/editor/RightSidebar'
 import { ProjectBar } from '@/features/projects/ProjectBar'
 
+// Three.js/react-three-fiber are ~600kB gzipped — loaded on demand only when the 3D view is
+// actually opened, so the initial editor load doesn't pay for a feature most sessions won't use.
+const Scene3D = lazy(() => import('@/features/scene3d/Scene3D').then((m) => ({ default: m.Scene3D })))
+
 export function AppShell() {
   const theme = useThemeStore((s) => s.theme)
   const accentTheme = useThemeStore((s) => s.accentTheme)
@@ -23,6 +27,7 @@ export function AppShell() {
   const avatarDataUrl = useAuthStore((s) => s.user?.user_metadata?.avatarDataUrl)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [view3DOpen, setView3DOpen] = useState(false)
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
@@ -42,7 +47,7 @@ export function AppShell() {
           <ProjectBar />
         </div>
 
-        <Toolbar />
+        <Toolbar onOpen3D={() => setView3DOpen(true)} />
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -88,6 +93,17 @@ export function AppShell() {
 
         <main className="relative flex-1 overflow-hidden">
           <Canvas />
+          {view3DOpen && (
+            <Suspense
+              fallback={
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-surface">
+                  <Loader2 className="h-6 w-6 animate-spin text-accent" />
+                </div>
+              }
+            >
+              <Scene3D onClose={() => setView3DOpen(false)} />
+            </Suspense>
+          )}
         </main>
 
         <div className="relative flex h-full shrink-0">

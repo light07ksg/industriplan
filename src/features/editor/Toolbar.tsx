@@ -1,4 +1,4 @@
-import { Eye, EyeOff, Magnet, Maximize, Redo2, Ruler, Scaling, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
+import { Box, Eye, EyeOff, Magnet, Maximize, Redo2, Ruler, Scaling, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
 import { useCanvasStore } from '@/store/canvasStore'
 import type { MeasurementUnit } from '@/lib/units'
 
@@ -10,7 +10,11 @@ const UNITS: { id: MeasurementUnit; label: string }[] = [
   { id: 'm', label: 'm' },
 ]
 
-export function Toolbar() {
+interface ToolbarProps {
+  onOpen3D: () => void
+}
+
+export function Toolbar({ onOpen3D }: ToolbarProps) {
   const scale = useCanvasStore((s) => s.scale)
   const snapEnabled = useCanvasStore((s) => s.snapEnabled)
   const measurementUnit = useCanvasStore((s) => s.measurementUnit)
@@ -145,6 +149,17 @@ export function Toolbar() {
         />
         <span className="text-[10px] text-text-secondary">m</span>
       </div>
+
+      <div className="mx-1 h-5 w-px bg-surface-border" />
+
+      <button
+        onClick={onOpen3D}
+        title="Vista 3D"
+        className="flex h-7 items-center gap-1 rounded px-2 text-text-secondary transition-colors duration-150 hover:bg-accent-soft hover:text-accent"
+      >
+        <Box className="h-4 w-4" />
+        <span className="text-xs font-medium">3D</span>
+      </button>
     </div>
   )
 }
