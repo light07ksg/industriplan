@@ -118,7 +118,14 @@ function getElementBounds(el: CanvasElement): { cx: number; cy: number; hw: numb
   return { cx: el.x + el.width / 2, cy: el.y + el.height / 2, hw: el.width / 2, hh: el.height / 2 }
 }
 
-export function Canvas() {
+interface CanvasProps {
+  /** Renders the plan for viewing only: panning/zooming still work, but nothing can be selected,
+   * dragged, resized, or drawn. Used by the public share view, which has no toolbar/panels to
+   * change tools with anyway. */
+  readOnly?: boolean
+}
+
+export function Canvas({ readOnly = false }: CanvasProps = {}) {
   const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<Konva.Stage>(null)
   const trRef = useRef<Konva.Transformer>(null)
@@ -137,7 +144,11 @@ export function Canvas() {
   const position = useCanvasStore((s) => s.position)
   const gridSize = useCanvasStore((s) => s.gridSize)
   const snapEnabled = useCanvasStore((s) => s.snapEnabled)
-  const tool = useCanvasStore((s) => s.tool)
+  const rawTool = useCanvasStore((s) => s.tool)
+  const tool = readOnly ? 'select' : rawTool
+  /** Distinct from `tool === 'select'`: gates whether elements can be dragged/selected/edited at
+   * all, separately from which drawing tool happens to be active. */
+  const interactive = !readOnly
   const wallSnapMode = useCanvasStore((s) => s.wallSnapMode)
   const measurementUnit = useCanvasStore((s) => s.measurementUnit)
   const showMeasurements = useCanvasStore((s) => s.showMeasurements)
@@ -201,12 +212,12 @@ export function Canvas() {
     if (!tr) return
     const el = visibleElements.find((e) => e.id === selectedId)
     const node =
-      selectedId && el && el.type !== 'wall' && el.type !== 'connector' && el.type !== 'wallOpening' && el.type !== 'note'
+      !readOnly && selectedId && el && el.type !== 'wall' && el.type !== 'connector' && el.type !== 'wallOpening' && el.type !== 'note'
         ? shapeRefs.current[selectedId]
         : null
     tr.nodes(node ? [node] : [])
     tr.getLayer()?.batchDraw()
-  }, [selectedId, visibleElements])
+  }, [readOnly, selectedId, visibleElements])
 
   useEffect(() => {
     setWallDraft(null)
@@ -265,6 +276,7 @@ export function Canvas() {
   }, [tool])
 
   useEffect(() => {
+    if (readOnly) return
     const handleKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null
       const isTyping = !!target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
@@ -290,7 +302,7 @@ export function Canvas() {
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [selectedId, removeElement, undo, redo])
+  }, [readOnly, selectedId, removeElement, undo, redo])
 
   useEffect(() => {
     if (!pendingExport) return
@@ -433,6 +445,7 @@ export function Canvas() {
   }
 
   const handleElementClick = (id: string) => {
+    if (readOnly) return
     if (tool === 'select') {
       setSelectedId(id)
     } else if (tool === 'connector') {
@@ -510,6 +523,7 @@ export function Canvas() {
   }
 
   const handleDrop = (e: ReactDragEvent<HTMLDivElement>) => {
+    if (readOnly) return
     const symbolId = e.dataTransfer.getData(SYMBOL_DRAG_MIME)
     if (!symbolId || !containerRef.current) return
     e.preventDefault()
@@ -648,7 +662,7 @@ export function Canvas() {
                     fontStyle={fontStyle}
                     textDecoration={el.underline ? 'underline' : ''}
                     fill={isSelected ? colors.accent : colors.structure}
-                    draggable={tool === 'select'}
+                    draggable={interactive && tool === 'select'}
                     onClick={() => handleElementClick(el.id)}
                     onTap={() => handleElementClick(el.id)}
                     onDragEnd={(e) => handleElementDragEnd(el.id, e)}
@@ -671,6 +685,7 @@ export function Canvas() {
                     renderScale={renderScale}
                     stagePosition={position}
                     tool={tool}
+                    interactive={interactive}
                     selectedId={selectedId}
                     showMeasurements={showMeasurements}
                     measurementUnit={measurementUnit}
@@ -703,7 +718,7 @@ export function Canvas() {
                       strokeWidth={2 / renderScale}
                       dash={[10 / renderScale, 6 / renderScale]}
                       fill={colors.structureSoft}
-                      draggable={tool === 'select'}
+                      draggable={interactive && tool === 'select'}
                       onClick={() => handleElementClick(el.id)}
                       onTap={() => handleElementClick(el.id)}
                       onDragEnd={(e) => handleElementDragEnd(el.id, e)}
@@ -749,7 +764,7 @@ export function Canvas() {
                   x={el.x}
                   y={el.y}
                   rotation={el.rotation}
-                  draggable={tool === 'select'}
+                  draggable={interactive && tool === 'select'}
                   onClick={() => handleElementClick(el.id)}
                   onTap={() => handleElementClick(el.id)}
                   onDragEnd={(e) => handleElementDragEnd(el.id, e)}

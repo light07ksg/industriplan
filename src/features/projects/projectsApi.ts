@@ -6,6 +6,7 @@ export interface ProjectRow {
   owner_id: string
   name: string
   canvas_data: CanvasSnapshot
+  is_public: boolean
   created_at: string
   updated_at: string
 }
@@ -37,4 +38,17 @@ export async function updateProjectData(id: string, name: string, canvasData: Ca
 export async function deleteProject(id: string): Promise<void> {
   const { error } = await supabase.from('projects').delete().eq('id', id)
   if (error) throw error
+}
+
+export async function setProjectPublic(id: string, isPublic: boolean): Promise<void> {
+  const { error } = await supabase.from('projects').update({ is_public: isPublic }).eq('id', id)
+  if (error) throw error
+}
+
+/** Fetches a project for the public read-only share view — works without a session because the
+ * "select_public_projects" RLS policy allows it once the project is marked is_public. */
+export async function getPublicProject(id: string): Promise<ProjectRow | null> {
+  const { data, error } = await supabase.from('projects').select('*').eq('id', id).eq('is_public', true).maybeSingle()
+  if (error) throw error
+  return data as ProjectRow | null
 }

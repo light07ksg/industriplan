@@ -6,11 +6,13 @@ import {
   Download,
   FileJson,
   FileText,
+  Globe,
   Image,
   Loader2,
   Save,
   Share2,
   Upload,
+  X,
 } from 'lucide-react'
 import { useProjectSessionStore } from '@/store/projectSessionStore'
 import { useExportStore } from '@/store/exportStore'
@@ -18,13 +20,16 @@ import { useCanvasStore } from '@/store/canvasStore'
 import { exportProjectToJson, parseProjectJson } from '@/features/export/exportCanvas'
 
 export function ProjectBar() {
+  const currentProjectId = useProjectSessionStore((s) => s.currentProjectId)
   const currentProjectName = useProjectSessionStore((s) => s.currentProjectName)
+  const currentProjectIsPublic = useProjectSessionStore((s) => s.currentProjectIsPublic)
   const saving = useProjectSessionStore((s) => s.saving)
   const lastSavedAt = useProjectSessionStore((s) => s.lastSavedAt)
   const error = useProjectSessionStore((s) => s.error)
   const renameCurrent = useProjectSessionStore((s) => s.renameCurrent)
   const save = useProjectSessionStore((s) => s.save)
   const closeProject = useProjectSessionStore((s) => s.closeProject)
+  const setPublic = useProjectSessionStore((s) => s.setPublic)
 
   const exporting = useExportStore((s) => s.exporting)
   const exportError = useExportStore((s) => s.error)
@@ -38,6 +43,7 @@ export function ProjectBar() {
   const [exportMenuOpen, setExportMenuOpen] = useState(false)
   const [jsonError, setJsonError] = useState<string | null>(null)
   const [shareFeedback, setShareFeedback] = useState<string | null>(null)
+  const [sharing, setSharing] = useState(false)
 
   useEffect(() => {
     if (!exportMenuOpen) return
@@ -70,27 +76,54 @@ export function ProjectBar() {
     }
   }
 
+  const flashShareFeedback = (text: string) => {
+    setShareFeedback(text)
+    setTimeout(() => setShareFeedback(null), 2500)
+  }
+
   const handleShare = async () => {
-    const shareData = {
-      title: 'INDUSTRIPLAN',
-      text: `Estoy trabajando en "${currentProjectName}" en INDUSTRIPLAN.`,
-      url: window.location.origin,
-    }
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData)
-      } catch {
-        // El usuario canceló el diálogo de compartir; no es un error.
-      }
+    if (!currentProjectId) {
+      flashShareFeedback('Guardá el proyecto antes de compartirlo.')
       return
     }
+    setSharing(true)
     try {
-      await navigator.clipboard.writeText(shareData.url)
-      setShareFeedback('¡Enlace copiado!')
-    } catch {
-      setShareFeedback('No se pudo copiar el enlace.')
+      if (!currentProjectIsPublic) {
+        await setPublic(true)
+      }
+      const shareUrl = `${window.location.origin}/?share=${currentProjectId}`
+      const shareData = {
+        title: `${currentProjectName} — INDUSTRIPLAN`,
+        text: `Mirá el plano "${currentProjectName}" en INDUSTRIPLAN.`,
+        url: shareUrl,
+      }
+      if (navigator.share) {
+        try {
+          await navigator.share(shareData)
+        } catch {
+          // El usuario canceló el diálogo de compartir; no es un error.
+        }
+      } else {
+        await navigator.clipboard.writeText(shareUrl)
+        flashShareFeedback('¡Enlace copiado! Cualquiera con este link puede ver el plano (solo lectura).')
+      }
+    } catch (err) {
+      flashShareFeedback(err instanceof Error ? err.message : 'No se pudo compartir el proyecto.')
+    } finally {
+      setSharing(false)
     }
-    setTimeout(() => setShareFeedback(null), 2000)
+  }
+
+  const handleUnshare = async () => {
+    setSharing(true)
+    try {
+      await setPublic(false)
+      flashShareFeedback('El plano ya no es público.')
+    } catch (err) {
+      flashShareFeedback(err instanceof Error ? err.message : 'No se pudo actualizar.')
+    } finally {
+      setSharing(false)
+    }
   }
 
   return (
@@ -179,12 +212,26 @@ export function ProjectBar() {
 
       <button
         onClick={handleShare}
-        title="Compartir INDUSTRIPLAN"
-        className="flex h-7 items-center gap-1.5 rounded-md border border-surface-border px-2.5 text-xs font-medium text-text-secondary transition-colors duration-150 hover:border-accent hover:text-accent"
+        disabled={sharing}
+        title="Compartir un enlace de solo lectura a este proyecto"
+        className="flex h-7 items-center gap-1.5 rounded-md border border-surface-border px-2.5 text-xs font-medium text-text-secondary transition-colors duration-150 hover:border-accent hover:text-accent disabled:opacity-60"
       >
-        <Share2 className="h-3.5 w-3.5" />
+        {sharing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
         Compartir
       </button>
+
+      {currentProjectIsPublic && (
+        <button
+          onClick={handleUnshare}
+          disabled={sharing}
+          title="Dejar de compartir: el enlace dejará de funcionar"
+          className="flex h-7 items-center gap-1 rounded-md bg-accent-soft px-2 text-[10px] font-medium text-accent transition-colors duration-150 hover:bg-danger-soft hover:text-danger disabled:opacity-60"
+        >
+          <Globe className="h-3 w-3" />
+          Público
+          <X className="h-3 w-3" />
+        </button>
+      )}
 
       {shareFeedback ? (
         <span className="text-[10px] text-accent">{shareFeedback}</span>

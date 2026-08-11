@@ -22,6 +22,7 @@ interface WallWithOpeningsProps {
   renderScale: number
   stagePosition: Point
   tool: Tool
+  interactive: boolean
   selectedId: string | null
   showMeasurements: boolean
   measurementUnit: MeasurementUnit
@@ -41,6 +42,7 @@ export function WallWithOpenings({
   renderScale,
   stagePosition,
   tool,
+  interactive,
   selectedId,
   showMeasurements,
   measurementUnit,
@@ -170,7 +172,7 @@ export function WallWithOpenings({
             y={hitCenter.y}
             radius={hitRadius}
             fill="rgba(0,0,0,0.001)"
-            draggable={tool === 'select'}
+            draggable={interactive && tool === 'select'}
             dragBoundFunc={(pos) => {
               const worldPos = toWorld(pos, scale, stagePosition)
               const dx = worldPos.x - seg.start.x
@@ -181,8 +183,8 @@ export function WallWithOpenings({
               const projected = pointAt(dist)
               return { x: projected.x * scale + stagePosition.x, y: projected.y * scale + stagePosition.y }
             }}
-            onClick={() => tool === 'select' && onSelectOpening(opening.id)}
-            onTap={() => tool === 'select' && onSelectOpening(opening.id)}
+            onClick={() => interactive && tool === 'select' && onSelectOpening(opening.id)}
+            onTap={() => interactive && tool === 'select' && onSelectOpening(opening.id)}
             onDragEnd={(e) => {
               const node = e.target
               const dx = node.x() - seg.start.x
@@ -222,9 +224,9 @@ export function WallWithOpenings({
         strokeWidth={Math.max(wallStrokeWidth, 16) / scale}
         lineCap="round"
         lineJoin="round"
-        draggable={tool === 'select'}
-        onClick={() => tool === 'select' && onSelectWall()}
-        onTap={() => tool === 'select' && onSelectWall()}
+        draggable={interactive && tool === 'select'}
+        onClick={() => interactive && tool === 'select' && onSelectWall()}
+        onTap={() => interactive && tool === 'select' && onSelectWall()}
         onDragEnd={onWallDragEnd}
       />
       {lineElements}

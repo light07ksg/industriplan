@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useProjectSessionStore } from '@/store/projectSessionStore'
 import { AuthScreen } from '@/features/auth/AuthScreen'
 import { Dashboard } from '@/features/projects/Dashboard'
+import { SharedProjectView } from '@/features/projects/SharedProjectView'
 import { AppShell } from './AppShell'
 
 function App() {
@@ -15,6 +16,10 @@ function App() {
   useEffect(() => {
     init()
   }, [init])
+
+  // A shared read-only link works without a session, so it's checked before auth even loads.
+  const sharedProjectId = new URLSearchParams(window.location.search).get('share')
+  if (sharedProjectId) return <SharedProjectView projectId={sharedProjectId} />
 
   if (!initialized) {
     return (
