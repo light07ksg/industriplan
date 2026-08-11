@@ -1,7 +1,7 @@
 import type Konva from 'konva'
 import { saveAs } from 'file-saver'
 import { jsPDF } from 'jspdf'
-import type { CanvasElement } from '@/store/canvasStore'
+import type { CanvasElement, CanvasSnapshot } from '@/store/canvasStore'
 
 const EXPORT_PADDING = 60
 const MAX_EXPORT_PIXEL_RATIO = 2
@@ -163,4 +163,42 @@ export async function exportStageToPdf(
   pdf.addImage(dataUrl, 'PNG', offsetX, offsetY, imgWidth, imgHeight)
   pdf.save(`${sanitizeFileName(projectName)}.pdf`)
   return true
+}
+
+const PROJECT_JSON_VERSION = 1
+
+interface ProjectJsonFile extends CanvasSnapshot {
+  industriplanVersion: typeof PROJECT_JSON_VERSION
+  projectName: string
+  exportedAt: string
+}
+
+/** Exports the full editable project (elements, layers, units, scale) as a JSON file — unlike
+ * PNG/PDF, this can be imported back to keep working on the plan later or on another computer. */
+export function exportProjectToJson(snapshot: CanvasSnapshot, projectName: string): boolean {
+  if (snapshot.elements.length === 0) return false
+  const payload: ProjectJsonFile = {
+    industriplanVersion: PROJECT_JSON_VERSION,
+    projectName,
+    exportedAt: new Date().toISOString(),
+    ...snapshot,
+  }
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+  saveAs(blob, `${sanitizeFileName(projectName)}.json`)
+  return true
+}
+
+/** Parses a previously exported project JSON file back into a loadable snapshot. */
+export function parseProjectJson(text: string): CanvasSnapshot {
+  let data: unknown
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error('El archivo no es un JSON válido.')
+  }
+  if (!data || typeof data !== 'object' || !Array.isArray((data as ProjectJsonFile).elements)) {
+    throw new Error('Ese archivo no tiene el formato de un proyecto de INDUSTRIPLAN.')
+  }
+  const { elements, layers, measurementUnit, metersPerGridCell } = data as ProjectJsonFile
+  return { elements, layers, measurementUnit, metersPerGridCell }
 }

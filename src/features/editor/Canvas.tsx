@@ -756,55 +756,63 @@ export function Canvas() {
                   onTransformEnd={() => handleTransformEnd(el.id)}
                 >
                   <Rect width={el.width} height={looseVisualHeight} fill="rgba(0,0,0,0.01)" />
-                  {isLooseOpening ? (
-                    def.id === 'door' ? (
-                      <DoorSymbol
-                        hinge={{ x: 0, y: 0 }}
-                        wallDir={{ x: 1, y: 0 }}
-                        interiorDir={{ x: 0, y: 1 }}
-                        width={el.width}
-                        color={color}
-                        strokeWidth={WALL_THICKNESS * 0.4}
-                      />
-                    ) : def.id === 'door-double' ? (
-                      <DoubleDoorSymbol
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: el.width, y: 0 }}
-                        wallDir={{ x: 1, y: 0 }}
-                        interiorDir={{ x: 0, y: 1 }}
-                        width={el.width}
-                        color={color}
-                        strokeWidth={WALL_THICKNESS * 0.4}
-                      />
-                    ) : def.id === 'sliding-door' ? (
-                      <SlidingDoorSymbol
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: el.width, y: 0 }}
-                        interiorDir={{ x: 0, y: 1 }}
-                        thickness={WALL_THICKNESS}
-                        color={color}
-                        strokeWidth={WALL_THICKNESS * 0.32}
-                      />
+                  <Group
+                    scaleX={el.flipX ? -1 : 1}
+                    scaleY={el.flipY ? -1 : 1}
+                    x={el.flipX ? el.width : 0}
+                    y={el.flipY ? looseVisualHeight : 0}
+                    listening={false}
+                  >
+                    {isLooseOpening ? (
+                      def.id === 'door' ? (
+                        <DoorSymbol
+                          hinge={{ x: 0, y: 0 }}
+                          wallDir={{ x: 1, y: 0 }}
+                          interiorDir={{ x: 0, y: 1 }}
+                          width={el.width}
+                          color={color}
+                          strokeWidth={WALL_THICKNESS * 0.4}
+                        />
+                      ) : def.id === 'door-double' ? (
+                        <DoubleDoorSymbol
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: el.width, y: 0 }}
+                          wallDir={{ x: 1, y: 0 }}
+                          interiorDir={{ x: 0, y: 1 }}
+                          width={el.width}
+                          color={color}
+                          strokeWidth={WALL_THICKNESS * 0.4}
+                        />
+                      ) : def.id === 'sliding-door' ? (
+                        <SlidingDoorSymbol
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: el.width, y: 0 }}
+                          interiorDir={{ x: 0, y: 1 }}
+                          thickness={WALL_THICKNESS}
+                          color={color}
+                          strokeWidth={WALL_THICKNESS * 0.32}
+                        />
+                      ) : (
+                        <WindowSymbol
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: el.width, y: 0 }}
+                          interiorDir={{ x: 0, y: 1 }}
+                          thickness={WALL_THICKNESS}
+                          color={color}
+                          strokeWidth={WALL_THICKNESS * 0.28}
+                        />
+                      )
                     ) : (
-                      <WindowSymbol
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: el.width, y: 0 }}
-                        interiorDir={{ x: 0, y: 1 }}
-                        thickness={WALL_THICKNESS}
+                      <SymbolShape
+                        definition={def}
+                        width={el.width}
+                        height={el.height}
                         color={color}
-                        strokeWidth={WALL_THICKNESS * 0.28}
+                        fillColor={fillColor}
+                        strokeWidth={2.5 / renderScale}
                       />
-                    )
-                  ) : (
-                    <SymbolShape
-                      definition={def}
-                      width={el.width}
-                      height={el.height}
-                      color={color}
-                      fillColor={fillColor}
-                      strokeWidth={2.5 / renderScale}
-                    />
-                  )}
+                    )}
+                  </Group>
                   {(() => {
                     const labelFontSize = 12 / renderScale
                     const labelWidth = Math.max(el.width, measureTextWidth(el.label, labelFontSize) + 16 / renderScale)

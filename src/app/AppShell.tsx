@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { SettingsPanel } from '@/components/SettingsPanel'
 import { ProfilePanel } from '@/components/ProfilePanel'
+import { UsageHint } from '@/components/UsageHint'
 import { Canvas } from '@/features/editor/Canvas'
 import { Toolbar } from '@/features/editor/Toolbar'
 import { SymbolLibrary } from '@/features/symbols/SymbolLibrary'
@@ -69,6 +70,8 @@ export function AppShell() {
           </button>
         </div>
       </header>
+
+      <UsageHint />
 
       <div className="flex flex-1 overflow-hidden">
         <div className="relative flex h-full shrink-0">

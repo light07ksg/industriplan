@@ -46,6 +46,10 @@ export interface SymbolElement extends ElementBase {
   height: number
   symbolId: string
   label: string
+  /** Mirrors the symbol's artwork in place — useful for machinery/vehicles/doors whose plan-view
+   * icon isn't symmetric, without needing a whole "mirrored" catalog entry. */
+  flipX?: boolean
+  flipY?: boolean
 }
 
 export interface ConnectorElement extends ElementBase {

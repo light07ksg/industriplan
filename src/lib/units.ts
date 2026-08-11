@@ -9,6 +9,21 @@ export const UNIT_LABELS: Record<MeasurementUnit, string> = {
   m: 'Metros',
 }
 
+const UNIT_METERS_FACTOR: Record<MeasurementUnit, number> = { mm: 1000, cm: 100, m: 1 }
+const UNIT_DECIMALS: Record<MeasurementUnit, number> = { mm: 0, cm: 1, m: 2 }
+
+/** World units -> a plain number in the current display unit, for editable fields (X/Y/width/height). */
+export function toDisplayLength(worldUnits: number, unit: MeasurementUnit, metersPerWorldUnit: number): number {
+  const meters = worldUnits * metersPerWorldUnit
+  return Number((meters * UNIT_METERS_FACTOR[unit]).toFixed(UNIT_DECIMALS[unit]))
+}
+
+/** Inverse of toDisplayLength — a value typed in the current display unit back to world units. */
+export function fromDisplayLength(displayValue: number, unit: MeasurementUnit, metersPerWorldUnit: number): number {
+  if (metersPerWorldUnit === 0) return 0
+  return displayValue / UNIT_METERS_FACTOR[unit] / metersPerWorldUnit
+}
+
 export function formatLength(worldUnits: number, unit: MeasurementUnit, metersPerWorldUnit: number): string {
   const meters = Math.abs(worldUnits) * metersPerWorldUnit
   switch (unit) {

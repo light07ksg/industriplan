@@ -1,6 +1,9 @@
-import { ArrowLeft, Check, FileText, Image, Loader2, Save } from 'lucide-react'
+import { useRef, useState, type ChangeEvent } from 'react'
+import { ArrowLeft, Check, FileJson, FileText, Image, Loader2, Save, Upload } from 'lucide-react'
 import { useProjectSessionStore } from '@/store/projectSessionStore'
 import { useExportStore } from '@/store/exportStore'
+import { useCanvasStore } from '@/store/canvasStore'
+import { exportProjectToJson, parseProjectJson } from '@/features/export/exportCanvas'
 
 export function ProjectBar() {
   const currentProjectName = useProjectSessionStore((s) => s.currentProjectName)
@@ -14,6 +17,33 @@ export function ProjectBar() {
   const exporting = useExportStore((s) => s.exporting)
   const exportError = useExportStore((s) => s.error)
   const requestExport = useExportStore((s) => s.requestExport)
+
+  const getSnapshot = useCanvasStore((s) => s.getSnapshot)
+  const loadSnapshot = useCanvasStore((s) => s.loadSnapshot)
+  const pushHistory = useCanvasStore((s) => s.pushHistory)
+  const importInputRef = useRef<HTMLInputElement>(null)
+  const [jsonError, setJsonError] = useState<string | null>(null)
+
+  const handleExportJson = () => {
+    setJsonError(null)
+    const ok = exportProjectToJson(getSnapshot(), currentProjectName)
+    if (!ok) setJsonError('El plano está vacío, no hay nada que exportar.')
+  }
+
+  const handleImportJson = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      const text = await file.text()
+      const snapshot = parseProjectJson(text)
+      pushHistory()
+      loadSnapshot(snapshot)
+      setJsonError(null)
+    } catch (err) {
+      setJsonError(err instanceof Error ? err.message : 'No se pudo importar ese archivo.')
+    }
+  }
 
   return (
     <div className="flex items-center gap-2 border-l border-surface-border pl-3">
@@ -63,7 +93,28 @@ export function ProjectBar() {
         PDF
       </button>
 
-      {exportError ? (
+      <button
+        onClick={handleExportJson}
+        title="Exportar como JSON (para seguir editando después o en otra compu)"
+        className="flex h-7 items-center gap-1.5 rounded-md border border-surface-border px-2.5 text-xs font-medium text-text-secondary transition-colors duration-150 hover:border-accent hover:text-accent"
+      >
+        <FileJson className="h-3.5 w-3.5" />
+        JSON
+      </button>
+
+      <button
+        onClick={() => importInputRef.current?.click()}
+        title="Importar un plano desde un archivo JSON"
+        className="flex h-7 items-center gap-1.5 rounded-md border border-surface-border px-2.5 text-xs font-medium text-text-secondary transition-colors duration-150 hover:border-accent hover:text-accent"
+      >
+        <Upload className="h-3.5 w-3.5" />
+        Importar
+      </button>
+      <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportJson} />
+
+      {jsonError ? (
+        <span className="text-[10px] text-danger">{jsonError}</span>
+      ) : exportError ? (
         <span className="text-[10px] text-danger">{exportError}</span>
       ) : error ? (
         <span className="text-[10px] text-danger">{error}</span>

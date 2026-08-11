@@ -1,8 +1,20 @@
 import { useState } from 'react'
-import { Bold, ChevronDown, ChevronRight, Italic, SlidersHorizontal, Trash2, Underline } from 'lucide-react'
+import {
+  Bold,
+  ChevronDown,
+  ChevronRight,
+  FlipHorizontal,
+  FlipVertical,
+  Italic,
+  RotateCcw,
+  RotateCw,
+  SlidersHorizontal,
+  Trash2,
+  Underline,
+} from 'lucide-react'
 import { useCanvasStore } from '@/store/canvasStore'
 import { computeWallSegments } from '@/lib/geometry'
-import { formatArea, formatLength } from '@/lib/units'
+import { formatArea, formatLength, fromDisplayLength, toDisplayLength, type MeasurementUnit } from '@/lib/units'
 
 const FONT_OPTIONS = ['system-ui', 'Arial', 'Georgia', 'Courier New', 'Comic Sans MS', 'Trebuchet MS'] as const
 
@@ -24,6 +36,37 @@ function NumberField({ label, value, onChange }: NumberFieldProps) {
         onChange={(e) => {
           const v = parseFloat(e.target.value)
           if (!Number.isNaN(v)) onChange(v)
+        }}
+        className="w-full rounded border border-surface-border bg-surface px-2 py-1 text-xs text-text-primary outline-none focus:border-accent"
+      />
+    </label>
+  )
+}
+
+interface MeasurementFieldProps {
+  label: string
+  worldValue: number
+  unit: MeasurementUnit
+  metersPerWorldUnit: number
+  onChange: (worldValue: number) => void
+}
+
+/** Same as NumberField, but shows/edits the value converted to the project's current measurement
+ * unit (mm/cm/m) instead of raw internal world units, so it actually means something to the user. */
+function MeasurementField({ label, worldValue, unit, metersPerWorldUnit, onChange }: MeasurementFieldProps) {
+  const pushHistory = useCanvasStore((s) => s.pushHistory)
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[10px] text-text-secondary">
+        {label} <span className="text-text-secondary/70">({unit})</span>
+      </span>
+      <input
+        type="number"
+        value={toDisplayLength(worldValue, unit, metersPerWorldUnit)}
+        onFocus={() => pushHistory()}
+        onChange={(e) => {
+          const v = parseFloat(e.target.value)
+          if (!Number.isNaN(v)) onChange(fromDisplayLength(v, unit, metersPerWorldUnit))
         }}
         className="w-full rounded border border-surface-border bg-surface px-2 py-1 text-xs text-text-primary outline-none focus:border-accent"
       />
@@ -286,20 +329,97 @@ export function PropertiesPanel() {
         {(el.type === 'area' || el.type === 'symbol') && (
           <>
             <div className="grid grid-cols-2 gap-2">
-              <NumberField label="X" value={el.x} onChange={(v) => updateElement(el.id, { x: v })} />
-              <NumberField label="Y" value={el.y} onChange={(v) => updateElement(el.id, { y: v })} />
-              <NumberField
+              <MeasurementField
+                label="X"
+                worldValue={el.x}
+                unit={measurementUnit}
+                metersPerWorldUnit={metersPerWorldUnit}
+                onChange={(v) => updateElement(el.id, { x: v })}
+              />
+              <MeasurementField
+                label="Y"
+                worldValue={el.y}
+                unit={measurementUnit}
+                metersPerWorldUnit={metersPerWorldUnit}
+                onChange={(v) => updateElement(el.id, { y: v })}
+              />
+              <MeasurementField
                 label="Ancho"
-                value={el.width}
+                worldValue={el.width}
+                unit={measurementUnit}
+                metersPerWorldUnit={metersPerWorldUnit}
                 onChange={(v) => updateElement(el.id, { width: Math.max(1, v) })}
               />
-              <NumberField
+              <MeasurementField
                 label="Alto"
-                value={el.height}
+                worldValue={el.height}
+                unit={measurementUnit}
+                metersPerWorldUnit={metersPerWorldUnit}
                 onChange={(v) => updateElement(el.id, { height: Math.max(1, v) })}
               />
             </div>
             <NumberField label="Rotación (°)" value={el.rotation} onChange={(v) => updateElement(el.id, { rotation: v })} />
+
+            <div>
+              <span className="mb-1 block text-[10px] text-text-secondary">Girar y voltear</span>
+              <div className={`grid gap-1 ${el.type === 'symbol' ? 'grid-cols-4' : 'grid-cols-2'}`}>
+                <button
+                  onClick={() => {
+                    pushHistory()
+                    updateElement(el.id, { rotation: (((el.rotation - 90) % 360) + 360) % 360 })
+                  }}
+                  title="Girar 90° a la izquierda"
+                  className="flex h-8 items-center justify-center rounded border border-surface-border text-text-secondary transition-colors duration-150 hover:border-accent hover:text-accent"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => {
+                    pushHistory()
+                    updateElement(el.id, { rotation: (el.rotation + 90) % 360 })
+                  }}
+                  title="Girar 90° a la derecha"
+                  className="flex h-8 items-center justify-center rounded border border-surface-border text-text-secondary transition-colors duration-150 hover:border-accent hover:text-accent"
+                >
+                  <RotateCw className="h-3.5 w-3.5" />
+                </button>
+                {el.type === 'symbol' && (
+                  <>
+                    <button
+                      onClick={() => {
+                        pushHistory()
+                        updateElement(el.id, { flipX: !el.flipX })
+                      }}
+                      aria-pressed={el.flipX}
+                      title="Voltear horizontal"
+                      className={`flex h-8 items-center justify-center rounded border transition-colors duration-150 ${
+                        el.flipX
+                          ? 'border-accent bg-accent-soft text-accent'
+                          : 'border-surface-border text-text-secondary hover:border-accent hover:text-accent'
+                      }`}
+                    >
+                      <FlipHorizontal className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        pushHistory()
+                        updateElement(el.id, { flipY: !el.flipY })
+                      }}
+                      aria-pressed={el.flipY}
+                      title="Voltear vertical"
+                      className={`flex h-8 items-center justify-center rounded border transition-colors duration-150 ${
+                        el.flipY
+                          ? 'border-accent bg-accent-soft text-accent'
+                          : 'border-surface-border text-text-secondary hover:border-accent hover:text-accent'
+                      }`}
+                    >
+                      <FlipVertical className="h-3.5 w-3.5" />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
             {el.type === 'area' && (
               <div className="rounded border border-surface-border bg-surface p-2">
                 <StatRow label="Área" value={formatArea(el.width * el.height, measurementUnit, metersPerWorldUnit)} />
