@@ -13,6 +13,7 @@ interface ProjectSessionState {
   openProject: (project: ProjectRow) => void
   startNewProject: (name: string) => Promise<void>
   save: () => Promise<void>
+  saveAs: (name: string) => Promise<void>
   closeProject: () => void
   renameCurrent: (name: string) => void
   setPublic: (isPublic: boolean) => Promise<void>
@@ -62,6 +63,25 @@ export const useProjectSessionStore = create<ProjectSessionState>((set, get) => 
       set({ saving: false, lastSavedAt: new Date().toISOString() })
     } catch (e) {
       set({ saving: false, error: e instanceof Error ? e.message : 'No se pudo guardar' })
+    }
+  },
+  saveAs: async (name) => {
+    const user = useAuthStore.getState().user
+    if (!user) return
+    set({ saving: true, error: null })
+    try {
+      const snapshot = useCanvasStore.getState().getSnapshot()
+      const project = await createProject(name, user.id)
+      await updateProjectData(project.id, name, snapshot)
+      set({
+        currentProjectId: project.id,
+        currentProjectName: name,
+        currentProjectIsPublic: false,
+        lastSavedAt: new Date().toISOString(),
+        saving: false,
+      })
+    } catch (e) {
+      set({ saving: false, error: e instanceof Error ? e.message : 'No se pudo guardar como nuevo proyecto' })
     }
   },
   closeProject: () =>

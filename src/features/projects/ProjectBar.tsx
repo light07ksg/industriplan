@@ -3,7 +3,8 @@ import {
   ArrowLeft,
   Check,
   ChevronDown,
-  Download,
+  Copy,
+  File,
   FileJson,
   FileText,
   Globe,
@@ -28,6 +29,7 @@ export function ProjectBar() {
   const error = useProjectSessionStore((s) => s.error)
   const renameCurrent = useProjectSessionStore((s) => s.renameCurrent)
   const save = useProjectSessionStore((s) => s.save)
+  const saveAs = useProjectSessionStore((s) => s.saveAs)
   const closeProject = useProjectSessionStore((s) => s.closeProject)
   const setPublic = useProjectSessionStore((s) => s.setPublic)
 
@@ -39,23 +41,34 @@ export function ProjectBar() {
   const loadSnapshot = useCanvasStore((s) => s.loadSnapshot)
   const pushHistory = useCanvasStore((s) => s.pushHistory)
   const importInputRef = useRef<HTMLInputElement>(null)
-  const exportMenuRef = useRef<HTMLDivElement>(null)
-  const [exportMenuOpen, setExportMenuOpen] = useState(false)
+  const fileMenuRef = useRef<HTMLDivElement>(null)
+  const [fileMenuOpen, setFileMenuOpen] = useState(false)
   const [jsonError, setJsonError] = useState<string | null>(null)
   const [shareFeedback, setShareFeedback] = useState<string | null>(null)
   const [sharing, setSharing] = useState(false)
 
   useEffect(() => {
-    if (!exportMenuOpen) return
+    if (!fileMenuOpen) return
     const onClickOutside = (e: MouseEvent) => {
-      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) setExportMenuOpen(false)
+      if (fileMenuRef.current && !fileMenuRef.current.contains(e.target as Node)) setFileMenuOpen(false)
     }
     document.addEventListener('mousedown', onClickOutside)
     return () => document.removeEventListener('mousedown', onClickOutside)
-  }, [exportMenuOpen])
+  }, [fileMenuOpen])
+
+  const handleSave = () => {
+    setFileMenuOpen(false)
+    save()
+  }
+
+  const handleSaveAs = () => {
+    setFileMenuOpen(false)
+    const name = window.prompt('Nombre del nuevo proyecto:', `${currentProjectName} (copia)`)
+    if (name && name.trim()) saveAs(name.trim())
+  }
 
   const handleExportJson = () => {
-    setExportMenuOpen(false)
+    setFileMenuOpen(false)
     setJsonError(null)
     const ok = exportProjectToJson(getSnapshot(), currentProjectName)
     if (!ok) setJsonError('El plano está vacío, no hay nada que exportar.')
@@ -142,73 +155,84 @@ export function ProjectBar() {
         className="w-36 rounded border border-transparent bg-transparent px-1.5 py-1 text-sm font-medium text-text-primary outline-none hover:border-surface-border focus:border-accent focus:bg-surface"
       />
 
-      <button
-        onClick={() => save()}
-        disabled={saving}
-        title="Guardar proyecto"
-        className="flex h-7 items-center gap-1.5 rounded-md bg-accent px-2.5 text-xs font-medium text-white transition-opacity duration-150 hover:opacity-90 disabled:opacity-60"
-      >
-        {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-        Guardar
-      </button>
-
-      <div className="mx-0.5 h-5 w-px bg-surface-border" />
-
-      <div ref={exportMenuRef} className="relative">
+      <div ref={fileMenuRef} className="relative">
         <button
-          onClick={() => setExportMenuOpen((o) => !o)}
-          disabled={exporting}
-          title="Exportar el plano"
-          aria-pressed={exportMenuOpen}
-          className="flex h-7 items-center gap-1.5 rounded-md border border-surface-border px-2.5 text-xs font-medium text-text-secondary transition-colors duration-150 hover:border-accent hover:text-accent disabled:opacity-60"
+          onClick={() => setFileMenuOpen((o) => !o)}
+          disabled={saving || exporting}
+          title="Archivo: guardar, importar, exportar"
+          aria-pressed={fileMenuOpen}
+          className="flex h-7 items-center gap-1.5 rounded-md bg-accent px-2.5 text-xs font-medium text-white transition-opacity duration-150 hover:opacity-90 disabled:opacity-60"
         >
-          {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-          Exportar
+          {saving || exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <File className="h-3.5 w-3.5" />}
+          Archivo
           <ChevronDown className="h-3 w-3" />
         </button>
 
-        {exportMenuOpen && (
-          <div className="absolute top-full left-0 z-20 mt-1 w-40 rounded-md border border-surface-border bg-surface-alt py-1 shadow-lg">
+        {fileMenuOpen && (
+          <div className="absolute top-full left-0 z-20 mt-1 w-48 rounded-md border border-surface-border bg-surface-alt py-1 shadow-lg">
+            <button
+              onClick={handleSave}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors duration-150 hover:bg-accent-soft hover:text-accent"
+            >
+              <Save className="h-3.5 w-3.5" />
+              Guardar
+            </button>
+            <button
+              onClick={handleSaveAs}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors duration-150 hover:bg-accent-soft hover:text-accent"
+            >
+              <Copy className="h-3.5 w-3.5" />
+              Guardar como...
+            </button>
+
+            <div className="my-1 border-t border-surface-border" />
+
             <button
               onClick={() => {
-                setExportMenuOpen(false)
+                setFileMenuOpen(false)
+                importInputRef.current?.click()
+              }}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors duration-150 hover:bg-accent-soft hover:text-accent"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Importar JSON...
+            </button>
+
+            <div className="my-1 border-t border-surface-border" />
+
+            <button
+              onClick={() => {
+                setFileMenuOpen(false)
                 requestExport('png')
               }}
               className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors duration-150 hover:bg-accent-soft hover:text-accent"
             >
               <Image className="h-3.5 w-3.5" />
-              Imagen PNG
+              Exportar como PNG
             </button>
             <button
               onClick={() => {
-                setExportMenuOpen(false)
+                setFileMenuOpen(false)
                 requestExport('pdf')
               }}
               className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors duration-150 hover:bg-accent-soft hover:text-accent"
             >
               <FileText className="h-3.5 w-3.5" />
-              Documento PDF
+              Exportar como PDF
             </button>
             <button
               onClick={handleExportJson}
               className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary transition-colors duration-150 hover:bg-accent-soft hover:text-accent"
             >
               <FileJson className="h-3.5 w-3.5" />
-              Datos JSON
+              Exportar como JSON
             </button>
           </div>
         )}
       </div>
-
-      <button
-        onClick={() => importInputRef.current?.click()}
-        title="Importar un plano desde un archivo JSON"
-        className="flex h-7 items-center gap-1.5 rounded-md border border-surface-border px-2.5 text-xs font-medium text-text-secondary transition-colors duration-150 hover:border-accent hover:text-accent"
-      >
-        <Upload className="h-3.5 w-3.5" />
-        Importar
-      </button>
       <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportJson} />
+
+      <div className="mx-0.5 h-5 w-px bg-surface-border" />
 
       <button
         onClick={handleShare}
