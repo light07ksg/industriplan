@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Factory, FolderOpen, Loader2, LogOut, Plus, Trash2 } from 'lucide-react'
+import { Factory, FolderOpen, Loader2, LogOut, Plus, Trash2, User as UserIcon } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useProjectSessionStore } from '@/store/projectSessionStore'
+import { ProfilePanel } from '@/components/ProfilePanel'
 import { deleteProject, listProjects, type ProjectRow } from './projectsApi'
 
 export function Dashboard() {
@@ -17,6 +18,8 @@ export function Dashboard() {
   const sessionError = useProjectSessionStore((s) => s.error)
   const openProject = useProjectSessionStore((s) => s.openProject)
   const startNewProject = useProjectSessionStore((s) => s.startNewProject)
+  const avatarDataUrl = user?.user_metadata?.avatarDataUrl
+  const [profileOpen, setProfileOpen] = useState(false)
 
   const refresh = async () => {
     setLoading(true)
@@ -60,6 +63,18 @@ export function Dashboard() {
         <div className="flex items-center gap-3">
           <span className="text-xs text-text-secondary">{user?.email}</span>
           <button
+            onClick={() => setProfileOpen(true)}
+            title="Perfil"
+            aria-pressed={profileOpen}
+            className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-surface-border bg-surface text-text-secondary transition-colors duration-150 hover:border-accent hover:text-accent"
+          >
+            {avatarDataUrl ? (
+              <img src={avatarDataUrl} alt="Perfil" className="h-full w-full object-cover" />
+            ) : (
+              <UserIcon className="h-4 w-4" />
+            )}
+          </button>
+          <button
             onClick={() => signOut()}
             title="Cerrar sesión"
             className="flex h-8 w-8 items-center justify-center rounded text-text-secondary transition-colors duration-150 hover:bg-danger-soft hover:text-danger"
@@ -68,6 +83,8 @@ export function Dashboard() {
           </button>
         </div>
       </header>
+
+      {profileOpen && <ProfilePanel onClose={() => setProfileOpen(false)} />}
 
       <main className="mx-auto w-full max-w-2xl flex-1 overflow-y-auto p-6">
         <h1 className="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Mis proyectos</h1>
