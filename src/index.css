@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --surface: #eef1f6;
+  --surface-alt: #ffffff;
+  --surface-inset: #e4e8f0;
+  --surface-border: #d7dce6;
+  --text-primary: #0b1220;
+  --text-secondary: #5b6577;
+  --accent: #0891b2;
+  --accent-alt: #7c3aed;
+  --accent-soft: rgba(8, 145, 178, 0.12);
+  --danger: #dc2626;
+  --danger-soft: rgba(220, 38, 38, 0.12);
+  --grid-line: #c7cedb;
+  --grid-line-strong: #aab2c4;
+  --canvas-bg: #f5f7fb;
+}
+
+.dark {
+  --surface: #0a0e17;
+  --surface-alt: #0f1522;
+  --surface-inset: #0d1320;
+  --surface-border: #1c2536;
+  --text-primary: #e6ecf7;
+  --text-secondary: #8b96ac;
+  --accent: #22d3ee;
+  --accent-alt: #a855f7;
+  --accent-soft: rgba(34, 211, 238, 0.12);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.14);
+  --grid-line: #16202f;
+  --grid-line-strong: #223049;
+  --canvas-bg: #060a12;
+}
+
+/* Accent theme: swaps the interface's highlight color (selection, active tool text/borders,
+   a couple of symbol categories) independently of light/dark mode. */
+.accent-negro {
+  --accent: #1e293b;
+  --accent-alt: #475569;
+  --accent-soft: rgba(30, 41, 59, 0.1);
+}
+
+.dark.accent-negro {
+  --accent: #e2e8f0;
+  --accent-alt: #94a3b8;
+  --accent-soft: rgba(226, 232, 240, 0.14);
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-surface-inset: var(--surface-inset);
+  --color-surface-border: var(--surface-border);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-accent: var(--accent);
+  --color-accent-alt: var(--accent-alt);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-canvas-bg: var(--canvas-bg);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+* {
+  scrollbar-color: var(--surface-border) transparent;
+}
+
+.glow-accent {
+  box-shadow: 0 0 0 1px var(--accent-soft), 0 0 16px -2px var(--accent-soft);
+}
