@@ -73,7 +73,7 @@ export function LayersPanel() {
                 <button
                   onClick={() => removeLayer(layer.id)}
                   title="Eliminar capa"
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-text-secondary opacity-0 transition-opacity duration-150 hover:text-danger group-hover:opacity-100"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-text-secondary opacity-50 transition-opacity duration-150 hover:text-danger hover:opacity-100 focus-visible:opacity-100"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>

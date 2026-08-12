@@ -10,29 +10,19 @@ import {
   DEFAULT_LAYER_FOR_TYPE,
   WALL_SNAP_STEP,
   WALL_THICKNESS,
-  DOOR_WIDTH,
-  DOUBLE_DOOR_WIDTH,
-  WINDOW_WIDTH,
-  SLIDING_DOOR_WIDTH,
-  DOUBLE_WINDOW_WIDTH,
 } from '@/store/canvasStore'
 import { useExportStore } from '@/store/exportStore'
 import { useProjectSessionStore } from '@/store/projectSessionStore'
+import { useUIStore } from '@/store/uiStore'
 import { useThemeColors } from '@/lib/useThemeColors'
-import {
-  snapToGrid,
-  snapPoint,
-  toWorld,
-  zoomAtPoint,
-  rectBoundaryPoint,
-  nearestPointOnWall,
-  type Point,
-} from '@/lib/geometry'
+import { snapToGrid, snapPoint, toWorld, zoomAtPoint, rectBoundaryPoint, type Point } from '@/lib/geometry'
+import { generateId } from '@/lib/id'
 import { measureTextWidth } from '@/lib/measureText'
 import { SYMBOL_CATALOG } from '@/features/symbols/catalog'
 import { categoryColor, categorySoftColor } from '@/features/symbols/categoryColor'
-import { SYMBOL_DRAG_MIME, NOTE_DRAG_ID } from '@/features/symbols/SymbolLibrary'
+import { SYMBOL_DRAG_MIME } from '@/features/symbols/dragConstants'
 import { exportStageToPdf, exportStageToPng } from '@/features/export/exportCanvas'
+import { placeSymbolAtScreenPoint, placeSymbolAtWorldPoint, WALL_OPENING_SYMBOLS } from './placeSymbol'
 import { Grid } from './Grid'
 import { SymbolShape } from './SymbolShape'
 import { WallDimensions } from './WallDimensions'
@@ -41,16 +31,6 @@ import { DoorSymbol } from './DoorSymbol'
 import { DoubleDoorSymbol } from './DoubleDoorSymbol'
 import { SlidingDoorSymbol } from './SlidingDoorSymbol'
 import { WindowSymbol } from './WindowSymbol'
-
-const WALL_OPENING_SNAP_RADIUS_PX = 40
-
-const WALL_OPENING_SYMBOLS = {
-  door: { openingType: 'door', width: DOOR_WIDTH },
-  'door-double': { openingType: 'doubleDoor', width: DOUBLE_DOOR_WIDTH },
-  'sliding-door': { openingType: 'slidingDoor', width: SLIDING_DOOR_WIDTH },
-  window: { openingType: 'window', width: WINDOW_WIDTH },
-  'window-double': { openingType: 'window', width: DOUBLE_WINDOW_WIDTH },
-} as const
 
 const WHEEL_ZOOM_STEP = 1.05
 const MIN_ELEMENT_SIZE = 20
@@ -86,26 +66,6 @@ function findNearestWallVertex(
   if (wallDraft) {
     for (let i = 0; i < wallDraft.length; i += 2) {
       check(wallDraft[i], wallDraft[i + 1])
-    }
-  }
-
-  return best
-}
-
-/** Finds the wall closest to `point` (within a screen-space radius), for snapping a dropped door/window onto it. */
-function findNearestWallForOpening(
-  point: Point,
-  elements: CanvasElement[],
-  scale: number,
-): { wallId: string; segmentIndex: number; t: number } | null {
-  const threshold = WALL_OPENING_SNAP_RADIUS_PX / scale
-  let best: { wallId: string; segmentIndex: number; t: number; distance: number } | null = null
-
-  for (const el of elements) {
-    if (el.type !== 'wall') continue
-    const hit = nearestPointOnWall(point, el.points)
-    if (hit && hit.distance <= threshold && (!best || hit.distance < best.distance)) {
-      best = { wallId: el.id, segmentIndex: hit.segmentIndex, t: hit.t, distance: hit.distance }
     }
   }
 
@@ -172,6 +132,8 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
   const setExportingState = useExportStore((s) => s.setExporting)
   const setExportError = useExportStore((s) => s.setError)
   const currentProjectName = useProjectSessionStore((s) => s.currentProjectName)
+  const pendingPlacement = useUIStore((s) => s.pendingPlacement)
+  const cancelPlacement = useUIStore((s) => s.cancelPlacement)
 
   const colors = useThemeColors()
   const metersPerWorldUnit = metersPerGridCell / gridSize
@@ -231,7 +193,7 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
   const commitWall = (points: number[] | null) => {
     if (points && points.length >= 4) {
       addElement({
-        id: crypto.randomUUID(),
+        id: generateId(),
         type: 'wall',
         points,
         rotation: 0,
@@ -367,6 +329,12 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
     const rawWorld = toWorld(pointer, scale, position)
     const world = snapEnabled ? snapPoint(rawWorld, gridSize) : rawWorld
 
+    if (pendingPlacement) {
+      placeSymbolAtWorldPoint(pendingPlacement.symbolId, rawWorld)
+      cancelPlacement()
+      return
+    }
+
     if (tool === 'select') {
       if (e.target === stage) setSelectedId(null)
       return
@@ -429,7 +397,7 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
       const height = Math.abs(areaDraft.current.y - areaDraft.start.y)
       if (width >= MIN_AREA_DRAFT && height >= MIN_AREA_DRAFT) {
         addElement({
-          id: crypto.randomUUID(),
+          id: generateId(),
           type: 'area',
           x,
           y,
@@ -453,7 +421,7 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
         setConnectorFromId(id)
       } else if (connectorFromId !== id) {
         addElement({
-          id: crypto.randomUUID(),
+          id: generateId(),
           type: 'connector',
           fromId: connectorFromId,
           toId: id,
@@ -527,87 +495,21 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
     const symbolId = e.dataTransfer.getData(SYMBOL_DRAG_MIME)
     if (!symbolId || !containerRef.current) return
     e.preventDefault()
-    const rect = containerRef.current.getBoundingClientRect()
-    const screenPoint = { x: e.clientX - rect.left, y: e.clientY - rect.top }
-    const world = toWorld(screenPoint, scale, position)
-
-    if (symbolId === NOTE_DRAG_ID) {
-      let { x, y } = world
-      if (snapEnabled) {
-        const snapped = snapPoint({ x, y }, gridSize)
-        x = snapped.x
-        y = snapped.y
-      }
-      addElement({
-        id: crypto.randomUUID(),
-        type: 'note',
-        text: 'Nota',
-        x,
-        y,
-        fontSize: 16,
-        fontFamily: 'system-ui',
-        bold: false,
-        italic: false,
-        underline: false,
-        rotation: 0,
-        layerId: DEFAULT_LAYER_FOR_TYPE.note,
-      })
-      return
-    }
-
-    const def = SYMBOL_CATALOG.find((s) => s.id === symbolId)
-    if (!def) return
-
-    const wallOpeningDef = WALL_OPENING_SYMBOLS[symbolId as keyof typeof WALL_OPENING_SYMBOLS]
-    if (wallOpeningDef) {
-      const hit = findNearestWallForOpening(world, visibleElements, scale)
-      if (hit) {
-        const { openingType, width } = wallOpeningDef
-        addElement({
-          id: crypto.randomUUID(),
-          type: 'wallOpening',
-          openingType,
-          wallId: hit.wallId,
-          segmentIndex: hit.segmentIndex,
-          t: hit.t,
-          width,
-          flip: false,
-          label: def.name,
-          rotation: 0,
-          layerId: DEFAULT_LAYER_FOR_TYPE.wallOpening,
-        })
-        return
-      }
-    }
-
-    let x = world.x - def.defaultWidth / 2
-    let y = world.y - def.defaultHeight / 2
-    if (snapEnabled) {
-      const snapped = snapPoint({ x, y }, gridSize)
-      x = snapped.x
-      y = snapped.y
-    }
-    addElement({
-      id: crypto.randomUUID(),
-      type: 'symbol',
-      symbolId: def.id,
-      label: def.name,
-      x,
-      y,
-      width: def.defaultWidth,
-      height: def.defaultHeight,
-      rotation: 0,
-      layerId: DEFAULT_LAYER_FOR_TYPE.symbol,
-    })
+    placeSymbolAtScreenPoint(symbolId, { x: e.clientX, y: e.clientY }, containerRef.current)
   }
 
   const cursorClass = tool === 'select' ? '' : 'cursor-crosshair'
+  // While a drawing tool is active, taps place points/draw shapes rather than pan — the stage
+  // isn't draggable in that mode anyway, so there's no native scroll/zoom gesture worth letting
+  // through, and letting the browser try to interpret those taps as one is what makes drawing
+  // feel unresponsive on a touchscreen.
+  const touchAction = tool === 'select' ? 'auto' : 'none'
 
   return (
     <div
       ref={containerRef}
       className={`relative h-full w-full ${cursorClass}`}
-      style={{ background: colors.canvasBg }}
+      style={{ background: colors.canvasBg, touchAction }}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
@@ -626,7 +528,9 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
           onMouseDown={handleStageMouseDown}
           onTouchStart={handleStageMouseDown}
           onMouseMove={handleStageMouseMove}
+          onTouchMove={handleStageMouseMove}
           onMouseUp={handleStageMouseUp}
+          onTouchEnd={handleStageMouseUp}
         >
           <Layer>
             {!isExporting && (
@@ -1001,7 +905,8 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
               anchorStroke={colors.accent}
               anchorFill={colors.canvasBg}
               borderStroke={colors.accent}
-              anchorSize={8}
+              anchorSize={14}
+              anchorCornerRadius={3}
               keepRatio={false}
               boundBoxFunc={(oldBox, newBox) =>
                 newBox.width < MIN_ELEMENT_SIZE || newBox.height < MIN_ELEMENT_SIZE ? oldBox : newBox
@@ -1011,36 +916,66 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
         </Stage>
       )}
 
-      {tool === 'wall' && wallDraft && (() => {
-        const lastX = wallDraft[wallDraft.length - 2]
-        const lastY = wallDraft[wallDraft.length - 1]
-        const screenX = lastX * scale + position.x
-        const screenY = lastY * scale + position.y
-        const left = Math.min(Math.max(screenX + 14, 8), size.width - 84)
-        const top = Math.min(Math.max(screenY - 42, 8), size.height - 40)
-
-        return (
-          <div
-            className="absolute z-10 flex items-center gap-1 rounded-full border border-surface-border bg-surface-alt p-1 shadow-lg"
-            style={{ left, top }}
+      {pendingPlacement && (
+        <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full border border-surface-border bg-surface-alt py-1.5 pr-1.5 pl-3 shadow-lg">
+          <span className="text-xs font-medium text-text-primary">Tocá el plano para colocar "{pendingPlacement.label}"</span>
+          <button
+            onClick={cancelPlacement}
+            onTouchEnd={(e) => {
+              // preventDefault, not just stopPropagation: this button is about to unmount (the
+              // banner disappears once cancelled), and without it the browser still synthesizes
+              // a click/mousedown at this same screen point once the button is gone — which lands
+              // on the canvas underneath and is misread as a tap to draw/place something there.
+              e.preventDefault()
+              e.stopPropagation()
+              cancelPlacement()
+            }}
+            title="Cancelar"
+            style={{ touchAction: 'manipulation' }}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-danger-soft text-danger transition-transform duration-100 hover:scale-105"
           >
-            <button
-              onClick={() => commitWall(wallDraft)}
-              title="Terminar pared (Enter)"
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-white transition-transform duration-100 hover:scale-105"
-            >
-              <Check className="h-4 w-4" />
-            </button>
-            <button
-              onClick={cancelWallDraft}
-              title="Cancelar (Esc)"
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-danger-soft text-danger transition-transform duration-100 hover:scale-105"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        )
-      })()}
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {tool === 'wall' && wallDraft && (
+        // Fixed at the bottom of the canvas rather than anchored to the last point placed — a
+        // toolbar that follows your last tap sits right where you'd naturally tap next to
+        // continue the wall, making it easy to hit by accident (adding an unwanted point) instead
+        // of the button you meant to hit, and easy to miss for the opposite reason.
+        <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-surface-border bg-surface-alt p-1.5 shadow-lg">
+          <button
+            onClick={() => commitWall(wallDraft)}
+            onTouchEnd={(e) => {
+              // See the pendingPlacement cancel button's comment above: preventDefault stops the
+              // browser from synthesizing a click on the canvas underneath once this button is
+              // gone, which would otherwise add an unwanted extra wall point right on commit/cancel.
+              e.preventDefault()
+              e.stopPropagation()
+              commitWall(wallDraft)
+            }}
+            title="Terminar pared (Enter)"
+            style={{ touchAction: 'manipulation' }}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white transition-transform duration-100 hover:scale-105"
+          >
+            <Check className="h-5 w-5" />
+          </button>
+          <button
+            onClick={cancelWallDraft}
+            onTouchEnd={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              cancelWallDraft()
+            }}
+            title="Cancelar (Esc)"
+            style={{ touchAction: 'manipulation' }}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-danger-soft text-danger transition-transform duration-100 hover:scale-105"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

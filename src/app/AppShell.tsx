@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Factory, Loader2, Settings, User as UserIcon
 import { useThemeStore } from '@/store/themeStore'
 import { useUIStore } from '@/store/uiStore'
 import { useAuthStore } from '@/store/authStore'
+import { useIsMobile } from '@/lib/useIsMobile'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { SettingsPanel } from '@/components/SettingsPanel'
 import { ProfilePanel } from '@/components/ProfilePanel'
@@ -18,6 +19,7 @@ import { ProjectBar } from '@/features/projects/ProjectBar'
 const Scene3D = lazy(() => import('@/features/scene3d/Scene3D').then((m) => ({ default: m.Scene3D })))
 
 export function AppShell() {
+  const isMobile = useIsMobile()
   const theme = useThemeStore((s) => s.theme)
   const accentTheme = useThemeStore((s) => s.accentTheme)
   const symbolsPanelOpen = useUIStore((s) => s.symbolsPanelOpen)
@@ -38,18 +40,23 @@ export function AppShell() {
   }, [accentTheme])
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-surface text-text-primary">
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-surface-border bg-surface-alt px-4">
-        <div className="flex items-center gap-2">
-          <Factory className="h-5 w-5 text-accent" />
-          <span className="text-sm font-semibold tracking-wide">INDUSTRIPLAN</span>
+    // `h-dvh` (dynamic viewport height) instead of `h-screen` (100vh) — on mobile, `100vh`
+    // includes space the browser's own address bar/toolbar can be covering, so a fixed-position
+    // element sized against it can end up rendered partly underneath that browser chrome.
+    <div className="flex h-dvh w-screen flex-col overflow-hidden bg-surface text-text-primary">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border bg-surface-alt px-4 py-2 md:h-14 md:flex-nowrap md:py-0">
+        <div className="flex min-w-0 items-center gap-2">
+          <Factory className="h-5 w-5 shrink-0 text-accent" />
+          <span className="hidden text-sm font-semibold tracking-wide sm:inline">INDUSTRIPLAN</span>
 
           <ProjectBar />
         </div>
 
-        <Toolbar onOpen3D={() => setView3DOpen(true)} />
+        <div className="order-3 w-full min-w-0 overflow-x-auto md:order-none md:w-auto">
+          <Toolbar onOpen3D={() => setView3DOpen(true)} />
+        </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle />
 
           <button
@@ -79,17 +86,19 @@ export function AppShell() {
       <UsageHint />
 
       <div className="flex flex-1 overflow-hidden">
-        <div className="relative flex h-full shrink-0">
-          {symbolsPanelOpen && <SymbolLibrary />}
-          <button
-            onClick={toggleSymbolsPanel}
-            title={symbolsPanelOpen ? 'Ocultar panel de símbolos' : 'Mostrar panel de símbolos'}
-            aria-pressed={symbolsPanelOpen}
-            className="absolute top-1/2 -right-3 z-10 flex h-9 w-6 -translate-y-1/2 items-center justify-center rounded border border-surface-border bg-surface-alt text-text-secondary shadow-sm transition-colors duration-150 hover:border-accent hover:text-accent"
-          >
-            {symbolsPanelOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          </button>
-        </div>
+        {!isMobile && (
+          <div className="relative flex h-full shrink-0">
+            {symbolsPanelOpen && <SymbolLibrary />}
+            <button
+              onClick={toggleSymbolsPanel}
+              title={symbolsPanelOpen ? 'Ocultar panel de símbolos' : 'Mostrar panel de símbolos'}
+              aria-pressed={symbolsPanelOpen}
+              className="absolute top-1/2 -right-3 z-10 flex h-9 w-6 -translate-y-1/2 items-center justify-center rounded border border-surface-border bg-surface-alt text-text-secondary shadow-sm transition-colors duration-150 hover:border-accent hover:text-accent"
+            >
+              {symbolsPanelOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
+          </div>
+        )}
 
         <main className="relative flex-1 overflow-hidden">
           <Canvas />
@@ -106,17 +115,81 @@ export function AppShell() {
           )}
         </main>
 
-        <div className="relative flex h-full shrink-0">
+        {!isMobile && (
+          <div className="relative flex h-full shrink-0">
+            <button
+              onClick={toggleRightPanel}
+              title={rightPanelOpen ? 'Ocultar capas y propiedades' : 'Mostrar capas y propiedades'}
+              aria-pressed={rightPanelOpen}
+              className="absolute top-1/2 -left-3 z-10 flex h-9 w-6 -translate-y-1/2 items-center justify-center rounded border border-surface-border bg-surface-alt text-text-secondary shadow-sm transition-colors duration-150 hover:border-accent hover:text-accent"
+            >
+              {rightPanelOpen ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </button>
+            {rightPanelOpen && <RightSidebar />}
+          </div>
+        )}
+
+        {isMobile && !symbolsPanelOpen && (
+          // Same arrow-tab language as the desktop edge toggles above, just pinned to the actual
+          // screen edge instead of a panel that isn't there — familiar and easy to spot.
+          <button
+            onClick={toggleSymbolsPanel}
+            title="Mostrar panel de símbolos"
+            className="fixed top-1/2 left-0 z-30 flex h-14 w-7 -translate-y-1/2 items-center justify-center rounded-r-md border border-l-0 border-surface-border bg-surface-alt text-text-secondary shadow-md"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        )}
+
+        {isMobile && symbolsPanelOpen && (
+          <div className="fixed inset-0 z-40 flex">
+            <button
+              aria-label="Cerrar panel de símbolos"
+              onClick={toggleSymbolsPanel}
+              className="absolute inset-0 bg-black/40"
+            />
+            <div className="relative h-full shadow-xl">
+              <SymbolLibrary />
+              <button
+                onClick={toggleSymbolsPanel}
+                title="Ocultar panel de símbolos"
+                className="absolute top-1/2 -right-7 z-10 flex h-14 w-7 -translate-y-1/2 items-center justify-center rounded-r-md border border-l-0 border-surface-border bg-surface-alt text-text-secondary shadow-md"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {isMobile && !rightPanelOpen && (
           <button
             onClick={toggleRightPanel}
-            title={rightPanelOpen ? 'Ocultar capas y propiedades' : 'Mostrar capas y propiedades'}
-            aria-pressed={rightPanelOpen}
-            className="absolute top-1/2 -left-3 z-10 flex h-9 w-6 -translate-y-1/2 items-center justify-center rounded border border-surface-border bg-surface-alt text-text-secondary shadow-sm transition-colors duration-150 hover:border-accent hover:text-accent"
+            title="Mostrar capas y propiedades"
+            className="fixed top-1/2 right-0 z-30 flex h-14 w-7 -translate-y-1/2 items-center justify-center rounded-l-md border border-r-0 border-surface-border bg-surface-alt text-text-secondary shadow-md"
           >
-            {rightPanelOpen ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            <ChevronLeft className="h-5 w-5" />
           </button>
-          {rightPanelOpen && <RightSidebar />}
-        </div>
+        )}
+
+        {isMobile && rightPanelOpen && (
+          <div className="fixed inset-0 z-40 flex justify-end">
+            <button
+              aria-label="Cerrar panel de capas y propiedades"
+              onClick={toggleRightPanel}
+              className="absolute inset-0 bg-black/40"
+            />
+            <div className="relative h-full shadow-xl">
+              <button
+                onClick={toggleRightPanel}
+                title="Ocultar capas y propiedades"
+                className="absolute top-1/2 -left-7 z-10 flex h-14 w-7 -translate-y-1/2 items-center justify-center rounded-l-md border border-r-0 border-surface-border bg-surface-alt text-text-secondary shadow-md"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+              <RightSidebar />
+            </div>
+          </div>
+        )}
       </div>
 
       {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}

@@ -30,13 +30,11 @@ import { CATEGORY_LABELS, type SymbolCategory, type SymbolTier } from './iconPri
 import { SYMBOL_CATALOG } from './catalog'
 import { SymbolPreview } from './SymbolPreview'
 import { categoryColor, categorySoftColor } from './categoryColor'
+import { SYMBOL_DRAG_MIME, NOTE_DRAG_ID } from './dragConstants'
 import { useThemeColors } from '@/lib/useThemeColors'
 import { useCanvasStore, type Tool } from '@/store/canvasStore'
-
-export const SYMBOL_DRAG_MIME = 'application/x-plano-symbol'
-/** Sentinel dragged via SYMBOL_DRAG_MIME to tell Canvas's drop handler to create a NoteElement
- * instead of looking the id up in SYMBOL_CATALOG. */
-export const NOTE_DRAG_ID = '__note__'
+import { useUIStore } from '@/store/uiStore'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 const CATEGORY_ORDER: SymbolCategory[] = [
   'estructura',
@@ -92,10 +90,12 @@ const TOOLS: { id: Tool; label: string; hint: string; icon: typeof MousePointer2
 
 export function SymbolLibrary() {
   const colors = useThemeColors()
+  const isMobile = useIsMobile()
   const tool = useCanvasStore((s) => s.tool)
   const setTool = useCanvasStore((s) => s.setTool)
   const wallSnapMode = useCanvasStore((s) => s.wallSnapMode)
   const toggleWallSnapMode = useCanvasStore((s) => s.toggleWallSnapMode)
+  const startPlacement = useUIStore((s) => s.startPlacement)
   const [tier, setTier] = useState<SymbolTier>('basico')
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState<SymbolCategory | null>(null)
@@ -105,6 +105,26 @@ export function SymbolLibrary() {
     setTier(next)
     setSearch('')
     setActiveCategory(null)
+  }
+
+  // Native HTML5 drag-and-drop (the `draggable`/`onDragStart` handlers below) has no touch
+  // equivalent, and a prior attempt at a custom touch-drag (ghost following the finger, dropped
+  // by checking pointer position against the canvas) proved unreliable across real devices —
+  // dragging out of an overlay drawer onto a partially covered canvas is a fragile gesture. On
+  // mobile, a tap arms this symbol for placement instead; the next tap on the canvas places it —
+  // two simple taps, no drag tracking. Desktop keeps using native drag-and-drop as before.
+  const handleMobileTap = (symbolId: string, label: string) => {
+    if (!isMobile) return
+    startPlacement(symbolId, label)
+  }
+
+  // Belt-and-suspenders: react to the raw touchend directly (and suppress the click it would
+  // otherwise synthesize) rather than trusting onClick alone — the wall-finish button had the
+  // same reliability doubt and needed this same fallback to work consistently.
+  const handleMobileTouchEnd = (symbolId: string, label: string) => (e: { preventDefault: () => void }) => {
+    if (!isMobile) return
+    e.preventDefault()
+    startPlacement(symbolId, label)
   }
 
   const tierCategories = tier === 'basico' ? BASICO_CATEGORIES : AVANZADO_CATEGORIES
@@ -180,7 +200,9 @@ export function SymbolLibrary() {
             e.dataTransfer.setData(SYMBOL_DRAG_MIME, NOTE_DRAG_ID)
             e.dataTransfer.effectAllowed = 'copy'
           }}
-          title="Arrastra al lienzo para añadir un texto libre"
+          onClick={() => handleMobileTap(NOTE_DRAG_ID, 'Nota')}
+          onTouchEnd={handleMobileTouchEnd(NOTE_DRAG_ID, 'Nota')}
+          title={isMobile ? 'Tocá y luego tocá el plano para colocarla' : 'Arrastra al lienzo para añadir un texto libre'}
           className="flex h-8 w-full items-center gap-2 rounded-md border border-dashed border-surface-border px-2 text-xs font-medium text-text-secondary transition-colors duration-150 hover:border-accent hover:bg-accent-soft hover:text-accent active:cursor-grabbing"
         >
           <StickyNote className="h-4 w-4" />
@@ -299,6 +321,8 @@ export function SymbolLibrary() {
                       e.dataTransfer.setData(SYMBOL_DRAG_MIME, def.id)
                       e.dataTransfer.effectAllowed = 'copy'
                     }}
+                    onClick={() => handleMobileTap(def.id, def.name)}
+                    onTouchEnd={handleMobileTouchEnd(def.id, def.name)}
                     title={def.name}
                     style={{ '--hover-bg': fillColor, '--hover-border': color } as CSSProperties}
                     className="flex flex-col items-center gap-1 rounded-md border border-transparent p-1.5 transition-all duration-150 hover:border-[var(--hover-border)] hover:bg-[var(--hover-bg)] hover:shadow-sm active:scale-95 active:cursor-grabbing"

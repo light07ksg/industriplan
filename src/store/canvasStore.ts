@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { zoomAtPoint, type Point } from '@/lib/geometry'
 import { DEFAULT_METERS_PER_GRID_CELL, type MeasurementUnit } from '@/lib/units'
+import { generateId } from '@/lib/id'
 
 export type Tool = 'select' | 'wall' | 'area' | 'connector'
 export type WallSnapMode = 'free' | 'grid'
@@ -275,7 +276,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   addLayer: (name) => {
     get().pushHistory()
     set((state) => ({
-      layers: [...state.layers, { id: crypto.randomUUID(), name, visible: true, isDefault: false }],
+      layers: [...state.layers, { id: generateId(), name, visible: true, isDefault: false }],
     }))
   },
   renameLayer: (id, name) =>
