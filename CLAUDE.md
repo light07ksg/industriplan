@@ -34,7 +34,23 @@ producción — ver "Estado de despliegue" abajo.
   chips de categoría, sección de Notas (arrastrable, no es un símbolo del catálogo).
 - `src/features/projects/` — Dashboard (lista de proyectos), ProjectBar (menú Archivo, Compartir),
   SharedProjectView (vista pública de solo lectura vía `?share=<id>`), projectsApi.ts (Supabase).
-- `src/features/auth/` — AuthScreen (login/registro con hero de blueprint SVG), BlueprintHero.
+- `src/features/auth/` — LandingScreen (portada con imagen + botón "Empecemos", primera pantalla
+  para quien no tiene sesión), AuthScreen (login/registro con hero de blueprint SVG), BlueprintHero.
+- `src/features/scene3d/` — Vista 3D (react-three-fiber, cargada con `lazy()` porque three.js pesa
+  ~240kB gzipped en su propio chunk). `build3d.ts` convierte el snapshot de `canvasStore` (muros,
+  aberturas, símbolos) a geometría 3D; `categoryColor3d.ts` tiene un color fijo por categoría de
+  símbolo (en 2D varias categorías comparten color porque el ícono las distingue — en 3D los
+  símbolos son cajas genéricas, así que necesitan colores propios). Botón "3D" en el Toolbar.
+- **Soporte táctil/móvil**: `src/lib/useIsMobile.ts` (hook + `isMobileViewport()` para init
+  perezoso de stores). En mobile, `SymbolLibrary`/`RightSidebar` se vuelven cajones superpuestos
+  (no columnas fijas) con pestañas de flecha en el borde de pantalla; colocar un símbolo es
+  "tocar el símbolo → tocar el plano" (`useUIStore.pendingPlacement`) en vez de arrastrar — el
+  drag-and-drop nativo (`SymbolLibrary`'s `draggable`/`onDragStart`) sigue intacto para mouse en
+  desktop. `src/features/editor/placeSymbol.ts` centraliza la lógica de colocar un símbolo
+  (puerta/ventana ancla a la pared más cercana, si no cae como símbolo suelto) — la usan tanto el
+  `onDrop` de escritorio como el tap-to-place de mobile. `src/lib/id.ts` tiene un `generateId()`
+  con fallback: `crypto.randomUUID()` no existe fuera de contextos seguros (rompía todo al probar
+  por `http://<ip-lan>:5173` en el celular).
 
 ## Convenciones aprendidas en esta sesión
 
@@ -64,12 +80,24 @@ producción — ver "Estado de despliegue" abajo.
 
 ## Roadmap (en orden pedido por el usuario)
 
-1. **Vista/exportación 3D** del plano, a partir de los mismos datos (`canvasStore` ya tiene todo lo
-   necesario: paredes con grosor real, símbolos con ancho/alto/rotación, escala real en metros).
-   — **Próximo en la fila.**
-2. Adaptación para dispositivos móviles (probablemente PWA responsiva, no reescritura nativa — ver
-   discusión previa: dibujar muros punto a punto y arrastrar símbolos chiquitos con el dedo no
-   funciona igual que con mouse, va a necesitar una interacción distinta, no solo CSS responsivo).
+1. ~~Vista 3D del plano~~ — hecho (`src/features/scene3d/`).
+2. ~~Adaptación para dispositivos móviles~~ — hecho, primera pasada (ver "Soporte táctil/móvil"
+   arriba). Pendiente para una vuelta futura si hace falta: instalable como PWA (manifest + service
+   worker — decisión explícita de dejarlo afuera de la primera pasada para no sumar riesgo de caché
+   junto con el rework táctil), gesto de pinch-to-zoom (los botones +/- del toolbar ya cubren esto
+   como fallback), toolbar más pulida en mobile (hoy es scrolleable, no rediseñada por control).
+3. Portada/landing (`LandingScreen`) — hecha, primera versión con la imagen que mandó el usuario
+   (`public/portada-hero.jpg`). Pendiente: el usuario mencionó tener también un ícono aparte para
+   ubicar en algún lugar destacado — todavía no lo mandó.
+
+**Aprendido en la sesión del port móvil**: al testear por primera vez desde un celular real
+aparecieron bugs invisibles en desktop — `crypto.randomUUID()` no existe fuera de contextos
+seguros (rompía todo al entrar por IP de LAN en HTTP plano, no HTTPS); un botón que desaparece del
+DOM justo al soltar el dedo (`touchend`) puede hacer que el navegador sintetice un click de
+reemplazo sobre lo que quedó debajo — hace falta `preventDefault()` en el `touchend`, no alcanza
+con `stopPropagation()`; `100vh`/`h-screen` no descuenta la barra propia del navegador en mobile,
+tapando controles pegados al borde — usar `100dvh`/`h-dvh`. Ídem para cualquier pantalla nueva que
+se agregue a futuro con controles fijos cerca de un borde.
 
 ## Comandos útiles
 
