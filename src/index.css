@@ -98,6 +98,54 @@
   --accent-soft: rgba(244, 114, 182, 0.16);
 }
 
+.accent-amarillo {
+  --accent: #ca8a04;
+  --accent-alt: #a16207;
+  --accent-soft: rgba(202, 138, 4, 0.12);
+}
+
+.dark.accent-amarillo {
+  --accent: #facc15;
+  --accent-alt: #eab308;
+  --accent-soft: rgba(250, 204, 21, 0.16);
+}
+
+.accent-indigo {
+  --accent: #4f46e5;
+  --accent-alt: #4338ca;
+  --accent-soft: rgba(79, 70, 229, 0.12);
+}
+
+.dark.accent-indigo {
+  --accent: #818cf8;
+  --accent-alt: #6366f1;
+  --accent-soft: rgba(129, 140, 248, 0.16);
+}
+
+.accent-gris {
+  --accent: #52525b;
+  --accent-alt: #71717a;
+  --accent-soft: rgba(82, 82, 91, 0.12);
+}
+
+.dark.accent-gris {
+  --accent: #a1a1aa;
+  --accent-alt: #d4d4d8;
+  --accent-soft: rgba(161, 161, 170, 0.16);
+}
+
+.accent-lima {
+  --accent: #65a30d;
+  --accent-alt: #4d7c0f;
+  --accent-soft: rgba(101, 163, 13, 0.12);
+}
+
+.dark.accent-lima {
+  --accent: #a3e635;
+  --accent-alt: #bef264;
+  --accent-soft: rgba(163, 230, 53, 0.16);
+}
+
 @theme inline {
   --color-surface: var(--surface);
   --color-surface-alt: var(--surface-alt);

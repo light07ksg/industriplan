@@ -3,6 +3,8 @@ import {
   Bold,
   ChevronDown,
   ChevronRight,
+  Eye,
+  EyeOff,
   FlipHorizontal,
   FlipVertical,
   Italic,
@@ -158,13 +160,32 @@ export function PropertiesPanel() {
       <div className="flex flex-col gap-3">
         <label className="flex flex-col gap-1">
           <span className="text-[10px] text-text-secondary">Nombre</span>
-          <input
-            value={el.label ?? ''}
-            onFocus={() => pushHistory()}
-            onChange={(e) => updateElement(el.id, { label: e.target.value })}
-            placeholder={typeLabel}
-            className="w-full rounded border border-surface-border bg-surface px-2 py-1 text-xs text-text-primary outline-none focus:border-accent"
-          />
+          <div className="flex gap-1">
+            <input
+              value={el.label ?? ''}
+              onFocus={() => pushHistory()}
+              onChange={(e) => updateElement(el.id, { label: e.target.value })}
+              placeholder={typeLabel}
+              className="w-full rounded border border-surface-border bg-surface px-2 py-1 text-xs text-text-primary outline-none focus:border-accent"
+            />
+            {(el.type === 'area' || el.type === 'symbol') && (
+              <button
+                onClick={() => {
+                  pushHistory()
+                  updateElement(el.id, { showLabel: el.showLabel === false })
+                }}
+                title={el.showLabel === false ? 'Mostrar nombre en el plano' : 'Ocultar nombre en el plano'}
+                aria-pressed={el.showLabel === false}
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded border transition-colors duration-150 ${
+                  el.showLabel === false
+                    ? 'border-accent bg-accent-soft text-accent'
+                    : 'border-surface-border text-text-secondary hover:border-accent hover:text-accent'
+                }`}
+              >
+                {el.showLabel === false ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </button>
+            )}
+          </div>
         </label>
 
         <label className="flex flex-col gap-1">

@@ -17,7 +17,7 @@ export interface ThemePalette {
 
 /** The interface's accent identity — drives selection highlights, active tool text, and a couple
  * of symbol-category colors. Independent of light/dark mode, which controls background/foreground. */
-export type AccentTheme = 'azul' | 'negro' | 'verde' | 'violeta' | 'naranja' | 'rosa'
+export type AccentTheme = 'azul' | 'negro' | 'verde' | 'violeta' | 'naranja' | 'rosa' | 'amarillo' | 'indigo' | 'gris' | 'lima'
 
 export const ACCENT_THEME_LABELS: Record<AccentTheme, string> = {
   azul: 'Azul',
@@ -26,6 +26,10 @@ export const ACCENT_THEME_LABELS: Record<AccentTheme, string> = {
   violeta: 'Violeta',
   naranja: 'Naranja',
   rosa: 'Rosa',
+  amarillo: 'Amarillo',
+  indigo: 'Índigo',
+  gris: 'Gris',
+  lima: 'Lima',
 }
 
 type BasePalette = Omit<ThemePalette, 'accent' | 'accentAlt' | 'accentSoft'>
@@ -92,6 +96,26 @@ const accentPalettes: Record<'light' | 'dark', Record<AccentTheme, AccentPalette
       accentAlt: '#e11d48',
       accentSoft: 'rgba(219, 39, 119, 0.12)',
     },
+    amarillo: {
+      accent: '#ca8a04',
+      accentAlt: '#a16207',
+      accentSoft: 'rgba(202, 138, 4, 0.12)',
+    },
+    indigo: {
+      accent: '#4f46e5',
+      accentAlt: '#4338ca',
+      accentSoft: 'rgba(79, 70, 229, 0.12)',
+    },
+    gris: {
+      accent: '#52525b',
+      accentAlt: '#71717a',
+      accentSoft: 'rgba(82, 82, 91, 0.12)',
+    },
+    lima: {
+      accent: '#65a30d',
+      accentAlt: '#4d7c0f',
+      accentSoft: 'rgba(101, 163, 13, 0.12)',
+    },
   },
   dark: {
     azul: {
@@ -123,6 +147,26 @@ const accentPalettes: Record<'light' | 'dark', Record<AccentTheme, AccentPalette
       accent: '#f472b6',
       accentAlt: '#fb7185',
       accentSoft: 'rgba(244, 114, 182, 0.16)',
+    },
+    amarillo: {
+      accent: '#facc15',
+      accentAlt: '#eab308',
+      accentSoft: 'rgba(250, 204, 21, 0.16)',
+    },
+    indigo: {
+      accent: '#818cf8',
+      accentAlt: '#6366f1',
+      accentSoft: 'rgba(129, 140, 248, 0.16)',
+    },
+    gris: {
+      accent: '#a1a1aa',
+      accentAlt: '#d4d4d8',
+      accentSoft: 'rgba(161, 161, 170, 0.16)',
+    },
+    lima: {
+      accent: '#a3e635',
+      accentAlt: '#bef264',
+      accentSoft: 'rgba(163, 230, 53, 0.16)',
     },
   },
 }

@@ -127,6 +127,7 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
   const wallSnapMode = useCanvasStore((s) => s.wallSnapMode)
   const measurementUnit = useCanvasStore((s) => s.measurementUnit)
   const showMeasurements = useCanvasStore((s) => s.showMeasurements)
+  const hideAllLabels = useCanvasStore((s) => s.hideAllLabels)
   const metersPerGridCell = useCanvasStore((s) => s.metersPerGridCell)
   const elements = useCanvasStore((s) => s.elements)
   const layers = useCanvasStore((s) => s.layers)
@@ -680,23 +681,25 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
                       onDragEnd={(e) => handleElementDragEnd(el.id, e)}
                       onTransformEnd={() => handleTransformEnd(el.id)}
                     />
-                    {(() => {
-                      const labelFontSize = 12 / renderScale
-                      const labelWidth = Math.max(el.width, measureTextWidth(el.label, labelFontSize) + 16 / renderScale)
-                      return (
-                        <Text
-                          text={el.label}
-                          x={el.x + el.width / 2 - labelWidth / 2}
-                          y={el.y + 4 / renderScale}
-                          width={labelWidth}
-                          align="center"
-                          wrap="none"
-                          fontSize={labelFontSize}
-                          fill={colors.textSecondary}
-                          listening={false}
-                        />
-                      )
-                    })()}
+                    {!hideAllLabels &&
+                      el.showLabel !== false &&
+                      (() => {
+                        const labelFontSize = 12 / renderScale
+                        const labelWidth = Math.max(el.width, measureTextWidth(el.label, labelFontSize) + 16 / renderScale)
+                        return (
+                          <Text
+                            text={el.label}
+                            x={el.x + el.width / 2 - labelWidth / 2}
+                            y={el.y + 4 / renderScale}
+                            width={labelWidth}
+                            align="center"
+                            wrap="none"
+                            fontSize={labelFontSize}
+                            fill={colors.textSecondary}
+                            listening={false}
+                          />
+                        )
+                      })()}
                   </Group>
                 )
               }
@@ -705,7 +708,8 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
               if (!def) return null
               const color = categoryColor(def.category, colors)
               const fillColor = categorySoftColor(def.category, colors)
-              const isLooseOpening = def.id in WALL_OPENING_SYMBOLS
+              const looseOpeningDef = WALL_OPENING_SYMBOLS[def.id as keyof typeof WALL_OPENING_SYMBOLS]
+              const isLooseOpening = looseOpeningDef !== undefined
               // A loose door/window uses the exact same leaf/arc or frame-line drawing as one
               // attached to a wall, so it never looks squished or different depending on where
               // you dropped it.
@@ -734,8 +738,8 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
                     y={el.flipY ? looseVisualHeight : 0}
                     listening={false}
                   >
-                    {isLooseOpening ? (
-                      def.id === 'door' ? (
+                    {looseOpeningDef ? (
+                      looseOpeningDef.openingType === 'door' ? (
                         <DoorSymbol
                           hinge={{ x: 0, y: 0 }}
                           wallDir={{ x: 1, y: 0 }}
@@ -744,7 +748,7 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
                           color={color}
                           strokeWidth={WALL_THICKNESS * 0.4}
                         />
-                      ) : def.id === 'door-double' ? (
+                      ) : looseOpeningDef.openingType === 'doubleDoor' ? (
                         <DoubleDoorSymbol
                           start={{ x: 0, y: 0 }}
                           end={{ x: el.width, y: 0 }}
@@ -754,7 +758,7 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
                           color={color}
                           strokeWidth={WALL_THICKNESS * 0.4}
                         />
-                      ) : def.id === 'sliding-door' ? (
+                      ) : looseOpeningDef.openingType === 'slidingDoor' ? (
                         <SlidingDoorSymbol
                           start={{ x: 0, y: 0 }}
                           end={{ x: el.width, y: 0 }}
@@ -784,23 +788,25 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
                       />
                     )}
                   </Group>
-                  {(() => {
-                    const labelFontSize = 12 / renderScale
-                    const labelWidth = Math.max(el.width, measureTextWidth(el.label, labelFontSize) + 16 / renderScale)
-                    return (
-                      <Text
-                        text={el.label}
-                        x={el.width / 2 - labelWidth / 2}
-                        y={looseVisualHeight + 4 / renderScale}
-                        width={labelWidth}
-                        align="center"
-                        wrap="none"
-                        fontSize={labelFontSize}
-                        fill={colors.textSecondary}
-                        listening={false}
-                      />
-                    )
-                  })()}
+                  {!hideAllLabels &&
+                    el.showLabel !== false &&
+                    (() => {
+                      const labelFontSize = 12 / renderScale
+                      const labelWidth = Math.max(el.width, measureTextWidth(el.label, labelFontSize) + 16 / renderScale)
+                      return (
+                        <Text
+                          text={el.label}
+                          x={el.width / 2 - labelWidth / 2}
+                          y={looseVisualHeight + 4 / renderScale}
+                          width={labelWidth}
+                          align="center"
+                          wrap="none"
+                          fontSize={labelFontSize}
+                          fill={colors.textSecondary}
+                          listening={false}
+                        />
+                      )
+                    })()}
                 </Group>
               )
             })}

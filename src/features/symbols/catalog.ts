@@ -1544,7 +1544,7 @@ export const SYMBOL_CATALOG: SymbolDefinition[] = [
     category: 'bano',
     name: 'Toallero',
     defaultWidth: 24, // 0.6m
-    defaultHeight: 4, // 0.1m
+    defaultHeight: 8, // 0.2m — a hair over true depth so the bracket lines stay legible on the plan
     box: 100,
     primitives: [
       { kind: 'line', points: [4, 50, 96, 50] },
@@ -1942,7 +1942,7 @@ export const SYMBOL_CATALOG: SymbolDefinition[] = [
     category: 'oficina',
     name: 'Pizarra',
     defaultWidth: 48, // 1.2m
-    defaultHeight: 4, // 0.1m
+    defaultHeight: 10, // 0.25m — its artwork is a bordered rectangle, near-invisible any thinner
     box: 100,
     primitives: [
       { kind: 'rect', x: 4, y: 30, w: 92, h: 40 },
@@ -2208,7 +2208,7 @@ export const SYMBOL_CATALOG: SymbolDefinition[] = [
     category: 'exterior',
     name: 'Sección de cerca',
     defaultWidth: 80, // 2m
-    defaultHeight: 4, // 0.1m
+    defaultHeight: 8, // 0.2m — a hair over true depth so the picket lines stay legible on the plan
     box: 100,
     primitives: [
       { kind: 'line', points: [4, 50, 96, 50] },
@@ -2256,7 +2256,7 @@ export const SYMBOL_CATALOG: SymbolDefinition[] = [
     category: 'exterior',
     name: 'Portón',
     defaultWidth: 48, // 1.2m
-    defaultHeight: 8, // 0.2m
+    defaultHeight: 12, // 0.3m — a hair over true depth so the bar lines stay legible on the plan
     box: 100,
     primitives: [
       { kind: 'line', points: [4, 50, 96, 50] },
@@ -2419,7 +2419,7 @@ export const SYMBOL_CATALOG: SymbolDefinition[] = [
     category: 'edificio',
     name: 'Baranda',
     defaultWidth: 80, // 2m
-    defaultHeight: 4, // 0.1m
+    defaultHeight: 8, // 0.2m — a hair over true depth so the baluster lines stay legible on the plan
     box: 100,
     primitives: [
       { kind: 'line', points: [4, 50, 96, 50] },

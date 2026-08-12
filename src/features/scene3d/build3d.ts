@@ -198,12 +198,18 @@ function buildWalls3D(
   return { solids, glass }
 }
 
+// These two categories are flow-diagram arrows and signage (fire alarms, exit signs, hazard
+// stickers) — informational marks, not physical objects, so they'd read as odd floating boxes if
+// extruded into the 3D view. Excluded there while staying fully visible in the 2D plan.
+const CATEGORIES_EXCLUDED_FROM_3D: SymbolCategory[] = ['proceso', 'seguridad']
+
 function buildSymbols3D(symbolElements: SymbolElement[], metersPerWorldUnit: number): SymbolBox3D[] {
   const result: SymbolBox3D[] = []
 
   for (const el of symbolElements) {
     const def = SYMBOL_CATALOG.find((s) => s.id === el.symbolId)
     if (!def) continue
+    if (CATEGORIES_EXCLUDED_FROM_3D.includes(def.category)) continue
 
     const angleRad = degToRad(el.rotation)
     const ox = el.width / 2

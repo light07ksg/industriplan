@@ -10,6 +10,8 @@ export function LayersPanel() {
   const renameLayer = useCanvasStore((s) => s.renameLayer)
   const removeLayer = useCanvasStore((s) => s.removeLayer)
   const addLayer = useCanvasStore((s) => s.addLayer)
+  const hideAllLabels = useCanvasStore((s) => s.hideAllLabels)
+  const toggleHideAllLabels = useCanvasStore((s) => s.toggleHideAllLabels)
   const [collapsed, setCollapsed] = useState(false)
 
   const activeLayerId = elements.find((el) => el.id === selectedId)?.layerId
@@ -27,13 +29,25 @@ export function LayersPanel() {
           <LayersIcon className="h-3.5 w-3.5 text-accent" />
           <h2 className="text-xs font-semibold tracking-wide uppercase">Capas</h2>
         </button>
-        <button
-          onClick={() => addLayer(`Capa ${layers.length + 1}`)}
-          title="Nueva capa"
-          className="flex h-6 w-6 items-center justify-center rounded text-text-secondary transition-colors duration-150 hover:bg-accent-soft hover:text-accent"
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={toggleHideAllLabels}
+            title={hideAllLabels ? 'Mostrar todos los nombres en el plano' : 'Ocultar todos los nombres en el plano'}
+            aria-pressed={hideAllLabels}
+            className={`flex h-6 w-6 items-center justify-center rounded transition-colors duration-150 ${
+              hideAllLabels ? 'bg-accent-soft text-accent' : 'text-text-secondary hover:bg-accent-soft hover:text-accent'
+            }`}
+          >
+            {hideAllLabels ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            onClick={() => addLayer(`Capa ${layers.length + 1}`)}
+            title="Nueva capa"
+            className="flex h-6 w-6 items-center justify-center rounded text-text-secondary transition-colors duration-150 hover:bg-accent-soft hover:text-accent"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
       {!collapsed && (

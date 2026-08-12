@@ -31,6 +31,9 @@ interface ElementBase {
   rotation: number
   layerId: string
   label?: string
+  /** Whether this element's name is drawn on the plan (area/symbol only — other element types
+   * don't render a label at all). Defaults to visible when unset, for old saved projects. */
+  showLabel?: boolean
 }
 
 export interface WallElement extends ElementBase {
@@ -154,6 +157,7 @@ interface CanvasState {
   wallSnapMode: WallSnapMode
   measurementUnit: MeasurementUnit
   showMeasurements: boolean
+  hideAllLabels: boolean
   metersPerGridCell: number
   elements: CanvasElement[]
   layers: Layer[]
@@ -170,6 +174,7 @@ interface CanvasState {
   toggleWallSnapMode: () => void
   setMeasurementUnit: (unit: MeasurementUnit) => void
   toggleMeasurements: () => void
+  toggleHideAllLabels: () => void
   setMetersPerGridCell: (value: number) => void
   setSelectedId: (id: string | null) => void
   addElement: (element: CanvasElement) => void
@@ -208,6 +213,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   wallSnapMode: 'free',
   measurementUnit: 'm',
   showMeasurements: true,
+  hideAllLabels: false,
   metersPerGridCell: DEFAULT_METERS_PER_GRID_CELL,
   elements: initialElements,
   layers: DEFAULT_LAYERS,
@@ -251,6 +257,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   toggleWallSnapMode: () => set((state) => ({ wallSnapMode: state.wallSnapMode === 'free' ? 'grid' : 'free' })),
   setMeasurementUnit: (measurementUnit) => set({ measurementUnit }),
   toggleMeasurements: () => set((state) => ({ showMeasurements: !state.showMeasurements })),
+  toggleHideAllLabels: () => set((state) => ({ hideAllLabels: !state.hideAllLabels })),
   setMetersPerGridCell: (value) => set({ metersPerGridCell: value > 0 ? value : DEFAULT_METERS_PER_GRID_CELL }),
   setSelectedId: (id) => set({ selectedId: id }),
   addElement: (element) => {
