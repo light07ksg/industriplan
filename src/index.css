@@ -85,3 +85,26 @@ body {
 .glow-accent {
   box-shadow: 0 0 0 1px var(--accent-soft), 0 0 16px -2px var(--accent-soft);
 }
+
+/* Entrance animation for the landing screen — a plain CSS keyframe instead of an animation
+   library, since it's just a one-time fade-up on mount for a handful of elements. */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up {
+    animation: none;
+  }
+}

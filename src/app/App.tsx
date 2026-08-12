@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useProjectSessionStore } from '@/store/projectSessionStore'
 import { AuthScreen } from '@/features/auth/AuthScreen'
+import { LandingScreen } from '@/features/auth/LandingScreen'
 import { Dashboard } from '@/features/projects/Dashboard'
 import { SharedProjectView } from '@/features/projects/SharedProjectView'
 import { AppShell } from './AppShell'
@@ -12,6 +13,7 @@ function App() {
   const user = useAuthStore((s) => s.user)
   const init = useAuthStore((s) => s.init)
   const currentProjectId = useProjectSessionStore((s) => s.currentProjectId)
+  const [showLanding, setShowLanding] = useState(true)
 
   useEffect(() => {
     init()
@@ -29,7 +31,10 @@ function App() {
     )
   }
 
-  if (!user) return <AuthScreen />
+  if (!user) {
+    if (showLanding) return <LandingScreen onStart={() => setShowLanding(false)} />
+    return <AuthScreen />
+  }
 
   if (!currentProjectId) return <Dashboard />
 
