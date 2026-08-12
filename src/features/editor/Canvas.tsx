@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent } from 'react'
-import { Check, X } from 'lucide-react'
+import { Check, Trash2, X } from 'lucide-react'
 import { Stage, Layer, Rect, Line, Circle, Text, Group, Transformer, Arrow } from 'react-konva'
 import type Konva from 'konva'
 import type { KonvaEventObject } from 'konva/lib/Node'
@@ -15,6 +15,7 @@ import { useExportStore } from '@/store/exportStore'
 import { useProjectSessionStore } from '@/store/projectSessionStore'
 import { useUIStore } from '@/store/uiStore'
 import { useThemeColors } from '@/lib/useThemeColors'
+import { useIsMobile } from '@/lib/useIsMobile'
 import { snapToGrid, snapPoint, toWorld, zoomAtPoint, rectBoundaryPoint, type Point } from '@/lib/geometry'
 import { generateId } from '@/lib/id'
 import { measureTextWidth } from '@/lib/measureText'
@@ -72,6 +73,16 @@ function findNearestWallVertex(
   return best
 }
 
+/** Midpoint and distance between two touches, in coordinates relative to `rect` (the canvas
+ * container's bounding rect) — the same coordinate space `zoomAtPoint` expects. */
+function getPinchInfo(touches: TouchList, rect: DOMRect): { mid: Point; distance: number } {
+  const t1 = touches[0]
+  const t2 = touches[1]
+  const p1 = { x: t1.clientX - rect.left, y: t1.clientY - rect.top }
+  const p2 = { x: t2.clientX - rect.left, y: t2.clientY - rect.top }
+  return { mid: { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }, distance: Math.hypot(p2.x - p1.x, p2.y - p1.y) }
+}
+
 /** Center and half-extents of a symbol/area element, used to anchor connector arrows. Walls, connectors and wall openings have no such bounds. */
 function getElementBounds(el: CanvasElement): { cx: number; cy: number; hw: number; hh: number } | null {
   if (el.type === 'wall' || el.type === 'connector' || el.type === 'wallOpening' || el.type === 'note') return null
@@ -86,10 +97,14 @@ interface CanvasProps {
 }
 
 export function Canvas({ readOnly = false }: CanvasProps = {}) {
+  const isMobile = useIsMobile()
   const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<Konva.Stage>(null)
   const trRef = useRef<Konva.Transformer>(null)
   const shapeRefs = useRef<Record<string, Konva.Node | null>>({})
+  /** Tracks the previous two-finger touch distance/midpoint between pinch-zoom frames — a ref
+   * rather than state since it updates on every touchmove and never needs to trigger a render. */
+  const pinchRef = useRef<{ mid: Point; distance: number } | null>(null)
 
   const [size, setSize] = useState({ width: 0, height: 0 })
   const [wallDraft, setWallDraft] = useState<number[] | null>(null)
@@ -324,6 +339,16 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
 
   const handleStageMouseDown = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
     const stage = e.target.getStage()
+
+    // A second finger landing starts a pinch-zoom gesture — hand off to handleStageMouseMove
+    // entirely (it does the actual zoom math) rather than treating this as a normal tap, and
+    // cancel any pan-drag Konva's Stage may have already started from the first finger.
+    if ('touches' in e.evt && e.evt.touches.length >= 2) {
+      e.evt.preventDefault()
+      stage?.stopDrag()
+      return
+    }
+
     const pointer = stage?.getPointerPosition()
     if (!pointer) return
     const rawWorld = toWorld(pointer, scale, position)
@@ -370,6 +395,24 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
 
   const handleStageMouseMove = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
     const stage = e.target.getStage()
+
+    if ('touches' in e.evt && e.evt.touches.length >= 2) {
+      e.evt.preventDefault()
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (rect) {
+        const next = getPinchInfo(e.evt.touches, rect)
+        if (pinchRef.current) {
+          const factor = next.distance / pinchRef.current.distance
+          const zoomed = zoomAtPoint({ scale, position }, next.mid, factor)
+          setScale(zoomed.scale)
+          setPosition(zoomed.position)
+        }
+        pinchRef.current = next
+      }
+      return
+    }
+    pinchRef.current = null
+
     const pointer = stage?.getPointerPosition()
     if (!pointer) return
     const rawWorld = toWorld(pointer, scale, position)
@@ -390,6 +433,7 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
   }
 
   const handleStageMouseUp = () => {
+    pinchRef.current = null
     if (tool === 'area' && areaDraft) {
       const x = Math.min(areaDraft.start.x, areaDraft.current.x)
       const y = Math.min(areaDraft.start.y, areaDraft.current.y)
@@ -459,9 +503,16 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
     updateElement(id, { points: newPoints })
   }
 
+  // History is pushed once at onDragStart (see handleOpeningDragStart) rather than here, since
+  // this fires continuously on onDragMove to keep the door/window symbol tracking the cursor live
+  // — pushing an undo snapshot on every frame would both spam the history stack and, worse, keep
+  // capturing the already-dragged position instead of the pre-drag one.
   const handleOpeningMoved = (opening: WallOpeningElement, t: number) => {
-    pushHistory()
     updateElement(opening.id, { t: Math.min(1, Math.max(0, t)) })
+  }
+
+  const handleOpeningDragStart = () => {
+    pushHistory()
   }
 
   const handleTransformEnd = (id: string) => {
@@ -600,6 +651,7 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
                     onSelectWall={() => setSelectedId(el.id)}
                     onSelectOpening={(id) => setSelectedId(id)}
                     onWallDragEnd={(e) => handleWallDragEnd(el.id, el, e)}
+                    onOpeningDragStart={handleOpeningDragStart}
                     onOpeningMoved={handleOpeningMoved}
                   />
                 )
@@ -914,6 +966,28 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
             />
           </Layer>
         </Stage>
+      )}
+
+      {isMobile && !readOnly && tool === 'select' && selectedId && (
+        // On desktop, deleting is Delete/Backspace or the trash icon in Properties — both easy to
+        // find with a keyboard and a mouse. On mobile neither is obvious (no Delete key, and the
+        // properties panel is a drawer you have to think to open), which is exactly what caused a
+        // tester to get stuck not knowing how to remove something they'd placed.
+        <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2">
+          <button
+            onClick={() => removeElement(selectedId)}
+            onTouchEnd={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              removeElement(selectedId)
+            }}
+            title="Eliminar elemento"
+            style={{ touchAction: 'manipulation' }}
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-surface-border bg-surface-alt text-danger shadow-lg transition-transform duration-100 hover:scale-105"
+          >
+            <Trash2 className="h-5 w-5" />
+          </button>
+        </div>
       )}
 
       {pendingPlacement && (

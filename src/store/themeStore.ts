@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AccentTheme } from '@/lib/theme'
+import { ACCENT_THEME_LABELS, type AccentTheme } from '@/lib/theme'
 
 export type Theme = 'light' | 'dark'
 
@@ -14,7 +14,7 @@ function getInitialTheme(): Theme {
 
 function getInitialAccentTheme(): AccentTheme {
   const stored = localStorage.getItem(ACCENT_STORAGE_KEY)
-  return stored === 'negro' ? 'negro' : 'azul'
+  return stored && stored in ACCENT_THEME_LABELS ? (stored as AccentTheme) : 'azul'
 }
 
 interface ThemeState {

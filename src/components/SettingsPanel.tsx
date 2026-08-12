@@ -1,13 +1,8 @@
 import { Check, Moon, Sun, X } from 'lucide-react'
 import { useThemeStore } from '@/store/themeStore'
-import { ACCENT_THEME_LABELS, type AccentTheme } from '@/lib/theme'
+import { ACCENT_THEME_LABELS, getThemePalette, type AccentTheme } from '@/lib/theme'
 
-const ACCENT_THEMES: AccentTheme[] = ['azul', 'negro']
-
-const ACCENT_SWATCH: Record<AccentTheme, { light: string; dark: string }> = {
-  azul: { light: '#0891b2', dark: '#22d3ee' },
-  negro: { light: '#1e293b', dark: '#e2e8f0' },
-}
+const ACCENT_THEMES = Object.keys(ACCENT_THEME_LABELS) as AccentTheme[]
 
 interface SettingsPanelProps {
   onClose: () => void
@@ -84,7 +79,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           <div className="grid grid-cols-2 gap-2">
             {ACCENT_THEMES.map((option) => {
               const isSelected = accentTheme === option
-              const swatchColor = theme === 'dark' ? ACCENT_SWATCH[option].dark : ACCENT_SWATCH[option].light
+              const swatchColor = getThemePalette(theme, option).accent
               return (
                 <button
                   key={option}

@@ -7,6 +7,14 @@ import {
   WINDOW_WIDTH,
   SLIDING_DOOR_WIDTH,
   DOUBLE_WINDOW_WIDTH,
+  NARROW_DOOR_WIDTH,
+  WIDE_DOOR_WIDTH,
+  FIRE_DOOR_WIDTH,
+  WIDE_DOUBLE_DOOR_WIDTH,
+  NARROW_SLIDING_DOOR_WIDTH,
+  GARAGE_DOOR_WIDTH,
+  SMALL_WINDOW_WIDTH,
+  LARGE_WINDOW_WIDTH,
   type CanvasElement,
 } from '@/store/canvasStore'
 import { SYMBOL_CATALOG } from '@/features/symbols/catalog'
@@ -21,6 +29,14 @@ export const WALL_OPENING_SYMBOLS = {
   'sliding-door': { openingType: 'slidingDoor', width: SLIDING_DOOR_WIDTH },
   window: { openingType: 'window', width: WINDOW_WIDTH },
   'window-double': { openingType: 'window', width: DOUBLE_WINDOW_WIDTH },
+  'door-narrow': { openingType: 'door', width: NARROW_DOOR_WIDTH },
+  'door-wide': { openingType: 'door', width: WIDE_DOOR_WIDTH },
+  'door-fire': { openingType: 'door', width: FIRE_DOOR_WIDTH },
+  'door-double-wide': { openingType: 'doubleDoor', width: WIDE_DOUBLE_DOOR_WIDTH },
+  'sliding-door-narrow': { openingType: 'slidingDoor', width: NARROW_SLIDING_DOOR_WIDTH },
+  'garage-door': { openingType: 'slidingDoor', width: GARAGE_DOOR_WIDTH },
+  'window-small': { openingType: 'window', width: SMALL_WINDOW_WIDTH },
+  'window-large': { openingType: 'window', width: LARGE_WINDOW_WIDTH },
 } as const
 
 function findNearestWallForOpening(

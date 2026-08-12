@@ -5,6 +5,14 @@ import {
   WINDOW_WIDTH,
   SLIDING_DOOR_WIDTH,
   DOUBLE_WINDOW_WIDTH,
+  NARROW_DOOR_WIDTH,
+  WIDE_DOOR_WIDTH,
+  FIRE_DOOR_WIDTH,
+  WIDE_DOUBLE_DOOR_WIDTH,
+  NARROW_SLIDING_DOOR_WIDTH,
+  GARAGE_DOOR_WIDTH,
+  SMALL_WINDOW_WIDTH,
+  LARGE_WINDOW_WIDTH,
   WALL_THICKNESS,
 } from '@/store/canvasStore'
 
@@ -60,6 +68,93 @@ export const SYMBOL_CATALOG: SymbolDefinition[] = [
       { kind: 'rect', x: 36, y: 60, w: 60, h: 20 },
       { kind: 'line', points: [10, 50, 30, 50] },
       { kind: 'line', points: [70, 50, 90, 50] },
+    ],
+  },
+  {
+    id: 'door-narrow',
+    category: 'estructura',
+    name: 'Puerta angosta',
+    defaultWidth: NARROW_DOOR_WIDTH, // 0.7m, matches the wall-attached opening width
+    defaultHeight: WALL_THICKNESS,
+    box: 100,
+    primitives: [
+      { kind: 'line', points: [30, 10, 30, 90] },
+      { kind: 'line', points: [30, 90, 65, 90] },
+      { kind: 'path', d: 'M30,10 A65,65 0 0 1 65,90' },
+    ],
+  },
+  {
+    id: 'door-wide',
+    category: 'estructura',
+    name: 'Puerta ancha',
+    defaultWidth: WIDE_DOOR_WIDTH, // 1.2m, matches the wall-attached opening width — accessible-width swing door
+    defaultHeight: WALL_THICKNESS,
+    box: 100,
+    primitives: [
+      { kind: 'line', points: [5, 10, 5, 90] },
+      { kind: 'line', points: [5, 90, 90, 90] },
+      { kind: 'path', d: 'M5,10 A90,90 0 0 1 90,90' },
+    ],
+  },
+  {
+    id: 'door-fire',
+    category: 'estructura',
+    name: 'Puerta cortafuego',
+    defaultWidth: FIRE_DOOR_WIDTH, // 1.0m, matches the wall-attached opening width
+    defaultHeight: WALL_THICKNESS,
+    box: 100,
+    primitives: [
+      { kind: 'line', points: [15, 10, 15, 90] },
+      { kind: 'line', points: [15, 90, 80, 90] },
+      { kind: 'path', d: 'M15,10 A80,80 0 0 1 80,90' },
+      { kind: 'line', points: [8, 25, 22, 19] },
+      { kind: 'line', points: [8, 45, 22, 39] },
+      { kind: 'line', points: [8, 65, 22, 59] },
+    ],
+  },
+  {
+    id: 'door-double-wide',
+    category: 'estructura',
+    name: 'Puerta doble ancha',
+    defaultWidth: WIDE_DOUBLE_DOOR_WIDTH, // 2.4m, matches the wall-attached opening width
+    defaultHeight: WALL_THICKNESS,
+    box: 100,
+    primitives: [
+      { kind: 'line', points: [4, 10, 4, 90] },
+      { kind: 'line', points: [4, 90, 48, 90] },
+      { kind: 'path', d: 'M4,10 A88,88 0 0 1 48,90' },
+      { kind: 'line', points: [96, 10, 96, 90] },
+      { kind: 'line', points: [96, 90, 52, 90] },
+      { kind: 'path', d: 'M96,10 A88,88 0 0 0 52,90' },
+    ],
+  },
+  {
+    id: 'sliding-door-narrow',
+    category: 'estructura',
+    name: 'Puerta corrediza angosta',
+    defaultWidth: NARROW_SLIDING_DOOR_WIDTH, // 1.5m, matches the wall-attached opening width
+    defaultHeight: WALL_THICKNESS,
+    box: 100,
+    primitives: [
+      { kind: 'rect', x: 15, y: 25, w: 45, h: 15 },
+      { kind: 'rect', x: 40, y: 60, w: 45, h: 15 },
+      { kind: 'line', points: [20, 50, 35, 50] },
+      { kind: 'line', points: [65, 50, 80, 50] },
+    ],
+  },
+  {
+    id: 'garage-door',
+    category: 'estructura',
+    name: 'Puerta de garage',
+    defaultWidth: GARAGE_DOOR_WIDTH, // 4m, matches the wall-attached opening width — industrial roll-up/sectional door
+    defaultHeight: WALL_THICKNESS,
+    box: 100,
+    primitives: [
+      { kind: 'rect', x: 4, y: 12, w: 92, h: 76, rx: 4 },
+      { kind: 'line', points: [4, 28, 96, 28] },
+      { kind: 'line', points: [4, 44, 96, 44] },
+      { kind: 'line', points: [4, 60, 96, 60] },
+      { kind: 'line', points: [4, 76, 96, 76] },
     ],
   },
   {
@@ -120,6 +215,32 @@ export const SYMBOL_CATALOG: SymbolDefinition[] = [
       { kind: 'rect', x: 8, y: 30, w: 84, h: 40 },
       { kind: 'line', points: [8, 50, 92, 50] },
       { kind: 'line', points: [50, 30, 50, 70] },
+    ],
+  },
+  {
+    id: 'window-small',
+    category: 'estructura',
+    name: 'Ventana pequeña',
+    defaultWidth: SMALL_WINDOW_WIDTH, // 0.6m, matches the wall-attached opening width
+    defaultHeight: WALL_THICKNESS,
+    box: 100,
+    primitives: [
+      { kind: 'rect', x: 30, y: 32, w: 40, h: 36 },
+      { kind: 'line', points: [30, 50, 70, 50] },
+    ],
+  },
+  {
+    id: 'window-large',
+    category: 'estructura',
+    name: 'Ventanal',
+    defaultWidth: LARGE_WINDOW_WIDTH, // 2.4m, matches the wall-attached opening width
+    defaultHeight: WALL_THICKNESS,
+    box: 100,
+    primitives: [
+      { kind: 'rect', x: 4, y: 25, w: 92, h: 50 },
+      { kind: 'line', points: [4, 50, 96, 50] },
+      { kind: 'line', points: [35, 25, 35, 75] },
+      { kind: 'line', points: [65, 25, 65, 75] },
     ],
   },
   {

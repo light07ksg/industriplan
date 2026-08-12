@@ -31,6 +31,7 @@ interface WallWithOpeningsProps {
   onSelectWall: () => void
   onSelectOpening: (id: string) => void
   onWallDragEnd: (e: KonvaEventObject<DragEvent>) => void
+  onOpeningDragStart: () => void
   onOpeningMoved: (opening: WallOpeningElement, t: number) => void
 }
 
@@ -51,6 +52,7 @@ export function WallWithOpenings({
   onSelectWall,
   onSelectOpening,
   onWallDragEnd,
+  onOpeningDragStart,
   onOpeningMoved,
 }: WallWithOpeningsProps) {
   const isWallSelected = wall.id === selectedId
@@ -185,6 +187,14 @@ export function WallWithOpenings({
             }}
             onClick={() => interactive && tool === 'select' && onSelectOpening(opening.id)}
             onTap={() => interactive && tool === 'select' && onSelectOpening(opening.id)}
+            onDragStart={() => onOpeningDragStart()}
+            onDragMove={(e) => {
+              const node = e.target
+              const dx = node.x() - seg.start.x
+              const dy = node.y() - seg.start.y
+              const dist = dx * ux + dy * uy
+              onOpeningMoved(opening, segLen > 0 ? dist / segLen : 0)
+            }}
             onDragEnd={(e) => {
               const node = e.target
               const dx = node.x() - seg.start.x

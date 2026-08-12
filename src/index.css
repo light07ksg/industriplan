@@ -50,6 +50,54 @@
   --accent-soft: rgba(226, 232, 240, 0.14);
 }
 
+.accent-verde {
+  --accent: #059669;
+  --accent-alt: #0d9488;
+  --accent-soft: rgba(5, 150, 105, 0.12);
+}
+
+.dark.accent-verde {
+  --accent: #34d399;
+  --accent-alt: #2dd4bf;
+  --accent-soft: rgba(52, 211, 153, 0.16);
+}
+
+.accent-violeta {
+  --accent: #7c3aed;
+  --accent-alt: #c026d3;
+  --accent-soft: rgba(124, 58, 237, 0.12);
+}
+
+.dark.accent-violeta {
+  --accent: #a78bfa;
+  --accent-alt: #e879f9;
+  --accent-soft: rgba(167, 139, 250, 0.16);
+}
+
+.accent-naranja {
+  --accent: #ea580c;
+  --accent-alt: #d97706;
+  --accent-soft: rgba(234, 88, 12, 0.12);
+}
+
+.dark.accent-naranja {
+  --accent: #fb923c;
+  --accent-alt: #fbbf24;
+  --accent-soft: rgba(251, 146, 60, 0.16);
+}
+
+.accent-rosa {
+  --accent: #db2777;
+  --accent-alt: #e11d48;
+  --accent-soft: rgba(219, 39, 119, 0.12);
+}
+
+.dark.accent-rosa {
+  --accent: #f472b6;
+  --accent-alt: #fb7185;
+  --accent-soft: rgba(244, 114, 182, 0.16);
+}
+
 @theme inline {
   --color-surface: var(--surface);
   --color-surface-alt: var(--surface-alt);

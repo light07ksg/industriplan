@@ -1,6 +1,5 @@
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { ChevronLeft, ChevronRight, Factory, Loader2, Settings, User as UserIcon } from 'lucide-react'
-import { useThemeStore } from '@/store/themeStore'
 import { useUIStore } from '@/store/uiStore'
 import { useAuthStore } from '@/store/authStore'
 import { useIsMobile } from '@/lib/useIsMobile'
@@ -20,8 +19,6 @@ const Scene3D = lazy(() => import('@/features/scene3d/Scene3D').then((m) => ({ d
 
 export function AppShell() {
   const isMobile = useIsMobile()
-  const theme = useThemeStore((s) => s.theme)
-  const accentTheme = useThemeStore((s) => s.accentTheme)
   const symbolsPanelOpen = useUIStore((s) => s.symbolsPanelOpen)
   const rightPanelOpen = useUIStore((s) => s.rightPanelOpen)
   const toggleSymbolsPanel = useUIStore((s) => s.toggleSymbolsPanel)
@@ -30,14 +27,6 @@ export function AppShell() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [view3DOpen, setView3DOpen] = useState(false)
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark')
-  }, [theme])
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('accent-negro', accentTheme === 'negro')
-  }, [accentTheme])
 
   return (
     // `h-dvh` (dynamic viewport height) instead of `h-screen` (100vh) — on mobile, `100vh`

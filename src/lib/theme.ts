@@ -17,11 +17,15 @@ export interface ThemePalette {
 
 /** The interface's accent identity — drives selection highlights, active tool text, and a couple
  * of symbol-category colors. Independent of light/dark mode, which controls background/foreground. */
-export type AccentTheme = 'azul' | 'negro'
+export type AccentTheme = 'azul' | 'negro' | 'verde' | 'violeta' | 'naranja' | 'rosa'
 
 export const ACCENT_THEME_LABELS: Record<AccentTheme, string> = {
   azul: 'Azul',
   negro: 'Negro',
+  verde: 'Verde',
+  violeta: 'Violeta',
+  naranja: 'Naranja',
+  rosa: 'Rosa',
 }
 
 type BasePalette = Omit<ThemePalette, 'accent' | 'accentAlt' | 'accentSoft'>
@@ -68,6 +72,26 @@ const accentPalettes: Record<'light' | 'dark', Record<AccentTheme, AccentPalette
       accentAlt: '#475569',
       accentSoft: 'rgba(30, 41, 59, 0.10)',
     },
+    verde: {
+      accent: '#059669',
+      accentAlt: '#0d9488',
+      accentSoft: 'rgba(5, 150, 105, 0.12)',
+    },
+    violeta: {
+      accent: '#7c3aed',
+      accentAlt: '#c026d3',
+      accentSoft: 'rgba(124, 58, 237, 0.12)',
+    },
+    naranja: {
+      accent: '#ea580c',
+      accentAlt: '#d97706',
+      accentSoft: 'rgba(234, 88, 12, 0.12)',
+    },
+    rosa: {
+      accent: '#db2777',
+      accentAlt: '#e11d48',
+      accentSoft: 'rgba(219, 39, 119, 0.12)',
+    },
   },
   dark: {
     azul: {
@@ -80,9 +104,39 @@ const accentPalettes: Record<'light' | 'dark', Record<AccentTheme, AccentPalette
       accentAlt: '#94a3b8',
       accentSoft: 'rgba(226, 232, 240, 0.14)',
     },
+    verde: {
+      accent: '#34d399',
+      accentAlt: '#2dd4bf',
+      accentSoft: 'rgba(52, 211, 153, 0.16)',
+    },
+    violeta: {
+      accent: '#a78bfa',
+      accentAlt: '#e879f9',
+      accentSoft: 'rgba(167, 139, 250, 0.16)',
+    },
+    naranja: {
+      accent: '#fb923c',
+      accentAlt: '#fbbf24',
+      accentSoft: 'rgba(251, 146, 60, 0.16)',
+    },
+    rosa: {
+      accent: '#f472b6',
+      accentAlt: '#fb7185',
+      accentSoft: 'rgba(244, 114, 182, 0.16)',
+    },
   },
 }
 
 export function getThemePalette(mode: 'light' | 'dark', accentTheme: AccentTheme): ThemePalette {
   return { ...basePalettes[mode], ...accentPalettes[mode][accentTheme] }
+}
+
+/** CSS class names for every non-default accent theme (see the `.accent-*` rules in index.css).
+ * 'azul' is the default palette baked into `:root`/`.dark`, so it has no override class. */
+export const ACCENT_CLASS_NAMES = (Object.keys(ACCENT_THEME_LABELS) as AccentTheme[])
+  .filter((t) => t !== 'azul')
+  .map((t) => `accent-${t}`)
+
+export function getAccentClassName(accentTheme: AccentTheme): string | null {
+  return accentTheme === 'azul' ? null : `accent-${accentTheme}`
 }

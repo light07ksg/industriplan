@@ -17,6 +17,14 @@ export const DOUBLE_DOOR_WIDTH = 72 // 1.8m at default scale (two 0.9m leaves)
 export const WINDOW_WIDTH = 48 // 1.2m at default scale
 export const SLIDING_DOOR_WIDTH = 120 // 3m at default scale — sized for warehouse/loading openings
 export const DOUBLE_WINDOW_WIDTH = 80 // 2m at default scale
+export const NARROW_DOOR_WIDTH = 28 // 0.7m at default scale — closets, bathrooms
+export const WIDE_DOOR_WIDTH = 48 // 1.2m at default scale — accessible-width swing door
+export const FIRE_DOOR_WIDTH = 40 // 1.0m at default scale
+export const WIDE_DOUBLE_DOOR_WIDTH = 96 // 2.4m at default scale
+export const NARROW_SLIDING_DOOR_WIDTH = 60 // 1.5m at default scale
+export const GARAGE_DOOR_WIDTH = 160 // 4m at default scale — industrial roll-up/sectional door
+export const SMALL_WINDOW_WIDTH = 24 // 0.6m at default scale
+export const LARGE_WINDOW_WIDTH = 96 // 2.4m at default scale — picture window
 
 interface ElementBase {
   id: string
