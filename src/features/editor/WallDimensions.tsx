@@ -12,10 +12,10 @@ interface WallDimensionsProps {
   idPrefix: string
 }
 
-const DIM_OFFSET = 18
-const TICK_LENGTH = 5
-const TEXT_GAP = 14
-const TEXT_BOX_WIDTH = 60
+const DIM_OFFSET = 10
+const TICK_LENGTH = 4
+const TEXT_GAP = 6
+const TEXT_BOX_WIDTH = 46
 
 export function WallDimensions({ points, scale, unit, metersPerWorldUnit, color, idPrefix }: WallDimensionsProps) {
   const segments = computeWallSegments(points)
@@ -81,12 +81,12 @@ export function WallDimensions({ points, scale, unit, metersPerWorldUnit, color,
               x={textMid.x}
               y={textMid.y}
               offsetX={TEXT_BOX_WIDTH / 2 / scale}
-              offsetY={6 / scale}
+              offsetY={5 / scale}
               width={TEXT_BOX_WIDTH / scale}
               align="center"
               rotation={seg.angleDeg}
               text={formatLength(seg.length, unit, metersPerWorldUnit)}
-              fontSize={11 / scale}
+              fontSize={9 / scale}
               fill={color}
               listening={false}
             />
