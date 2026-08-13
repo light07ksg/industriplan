@@ -59,6 +59,13 @@ export function WallWithOpenings({
   const segments = computeWallSegments(wall.points)
   const wallColor = isWallSelected ? colors.accent : colors.structure
   const wallStrokeWidth = isWallSelected ? SELECTED_WALL_THICKNESS : WALL_THICKNESS
+  // A closed loop (last point back on the first — a rectangle from the Room tool, or a free-hand
+  // wall the user snapped closed) has no free-standing ends: every vertex, including the wrap-
+  // around one, is a corner joining two segments.
+  const isClosed =
+    wall.points.length >= 6 &&
+    Math.abs(wall.points[0] - wall.points[wall.points.length - 2]) < 0.01 &&
+    Math.abs(wall.points[1] - wall.points[wall.points.length - 1]) < 0.01
 
   const lineElements: ReactNode[] = []
   const openingElements: ReactNode[] = []
@@ -69,6 +76,30 @@ export function WallWithOpenings({
     const uy = (seg.end.y - seg.start.y) / segLen
     const interiorDir = { x: -seg.normal.x, y: -seg.normal.y }
     const pointAt = (dist: number) => ({ x: seg.start.x + ux * dist, y: seg.start.y + uy * dist })
+    // Each wall segment renders as one or more separate Line pieces (split around door/window
+    // gaps), so Konva's own lineJoin can't miter them together at a corner — every piece is its
+    // own independent shape with butt-capped ends, which left a visible notch at every corner.
+    // Instead, the end of a piece that lands on a real corner (not a door/window cut) is manually
+    // pushed out by half the stroke width along the wall's own direction, so adjacent walls'
+    // strokes overlap enough to fill the gap.
+    const startIsCorner = isClosed || segIndex > 0
+    const endIsCorner = isClosed || segIndex < segments.length - 1
+    const pushWallLine = (from: Point, to: Point, extendStart: boolean, extendEnd: boolean, key: string) => {
+      const half = wallStrokeWidth / 2
+      const p1 = extendStart ? { x: from.x - ux * half, y: from.y - uy * half } : from
+      const p2 = extendEnd ? { x: to.x + ux * half, y: to.y + uy * half } : to
+      lineElements.push(
+        <Line
+          key={key}
+          points={[p1.x, p1.y, p2.x, p2.y]}
+          stroke={wallColor}
+          strokeWidth={wallStrokeWidth}
+          lineCap="butt"
+          lineJoin="miter"
+          listening={false}
+        />,
+      )
+    }
 
     const segOpenings = openings
       .filter((o) => o.segmentIndex === segIndex)
@@ -85,17 +116,7 @@ export function WallWithOpenings({
       if (gapStart > cursor + 0.01) {
         const p1 = pointAt(cursor)
         const p2 = pointAt(gapStart)
-        lineElements.push(
-          <Line
-            key={`${wall.id}-seg${segIndex}-${lineElements.length}`}
-            points={[p1.x, p1.y, p2.x, p2.y]}
-            stroke={wallColor}
-            strokeWidth={wallStrokeWidth}
-            lineCap="butt"
-            lineJoin="miter"
-            listening={false}
-          />,
-        )
+        pushWallLine(p1, p2, cursor === 0 && startIsCorner, false, `${wall.id}-seg${segIndex}-${lineElements.length}`)
       }
 
       const gapStartPoint = pointAt(gapStart)
@@ -211,17 +232,7 @@ export function WallWithOpenings({
 
     if (cursor < segLen - 0.01) {
       const p1 = pointAt(cursor)
-      lineElements.push(
-        <Line
-          key={`${wall.id}-seg${segIndex}-tail`}
-          points={[p1.x, p1.y, seg.end.x, seg.end.y]}
-          stroke={wallColor}
-          strokeWidth={wallStrokeWidth}
-          lineCap="butt"
-          lineJoin="miter"
-          listening={false}
-        />,
-      )
+      pushWallLine(p1, seg.end, cursor === 0 && startIsCorner, endIsCorner, `${wall.id}-seg${segIndex}-tail`)
     }
   })
 
