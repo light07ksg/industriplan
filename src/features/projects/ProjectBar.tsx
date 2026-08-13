@@ -36,6 +36,8 @@ export function ProjectBar() {
   const exporting = useExportStore((s) => s.exporting)
   const exportError = useExportStore((s) => s.error)
   const requestExport = useExportStore((s) => s.requestExport)
+  const exportColorMode = useExportStore((s) => s.colorMode)
+  const setExportColorMode = useExportStore((s) => s.setColorMode)
 
   const getSnapshot = useCanvasStore((s) => s.getSnapshot)
   const loadSnapshot = useCanvasStore((s) => s.loadSnapshot)
@@ -199,6 +201,31 @@ export function ProjectBar() {
             </button>
 
             <div className="my-1 border-t border-surface-border" />
+
+            <div className="px-3 py-1.5">
+              <span className="mb-1 block text-[10px] text-text-secondary">Exportar PNG/PDF en</span>
+              <div className="grid grid-cols-2 gap-1 rounded-md bg-surface-inset p-0.5">
+                <button
+                  onClick={() => setExportColorMode('color')}
+                  aria-pressed={exportColorMode === 'color'}
+                  className={`rounded py-1 text-[11px] font-medium transition-colors duration-150 ${
+                    exportColorMode === 'color' ? 'bg-surface-alt text-accent shadow-sm' : 'text-text-secondary hover:text-accent'
+                  }`}
+                >
+                  Color
+                </button>
+                <button
+                  onClick={() => setExportColorMode('bw')}
+                  aria-pressed={exportColorMode === 'bw'}
+                  title="Plano en escala de grises sobre blanco, sin importar el tema del editor — ideal para entregar a un cliente"
+                  className={`rounded py-1 text-[11px] font-medium transition-colors duration-150 ${
+                    exportColorMode === 'bw' ? 'bg-surface-alt text-accent shadow-sm' : 'text-text-secondary hover:text-accent'
+                  }`}
+                >
+                  Blanco y negro
+                </button>
+              </div>
+            </div>
 
             <button
               onClick={() => {

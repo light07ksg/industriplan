@@ -15,6 +15,7 @@ import { useExportStore } from '@/store/exportStore'
 import { useProjectSessionStore } from '@/store/projectSessionStore'
 import { useUIStore } from '@/store/uiStore'
 import { useThemeColors } from '@/lib/useThemeColors'
+import { PRINT_PALETTE } from '@/lib/theme'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { snapToGrid, snapPoint, toWorld, zoomAtPoint, rectBoundaryPoint, type Point } from '@/lib/geometry'
 import { generateId } from '@/lib/id'
@@ -164,6 +165,7 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
   const redo = useCanvasStore((s) => s.redo)
 
   const pendingExport = useExportStore((s) => s.pendingExport)
+  const exportColorMode = useExportStore((s) => s.colorMode)
   const clearExportRequest = useExportStore((s) => s.clearExportRequest)
   const setExportingState = useExportStore((s) => s.setExporting)
   const setExportError = useExportStore((s) => s.setError)
@@ -171,7 +173,12 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
   const pendingPlacement = useUIStore((s) => s.pendingPlacement)
   const cancelPlacement = useUIStore((s) => s.cancelPlacement)
 
-  const colors = useThemeColors()
+  const themeColors = useThemeColors()
+  // A dedicated grayscale palette swapped in only for the rasterized capture, so a PNG/PDF export
+  // reads as a standard black-on-white technical drawing regardless of the accent color/light-dark
+  // mode being edited in — every wall/symbol/label color in this file flows from `colors`, so this
+  // one substitution is enough to recolor the whole export.
+  const colors = isExporting && exportColorMode === 'bw' ? PRINT_PALETTE : themeColors
   const metersPerWorldUnit = metersPerGridCell / gridSize
   // Exports rasterize the stage at a 1:1 scale regardless of the current zoom, so stroke widths
   // and font sizes (all sized relative to "scale" to stay a constant screen size) must switch to

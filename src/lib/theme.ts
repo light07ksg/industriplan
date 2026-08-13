@@ -184,3 +184,24 @@ export const ACCENT_CLASS_NAMES = (Object.keys(ACCENT_THEME_LABELS) as AccentThe
 export function getAccentClassName(accentTheme: AccentTheme): string | null {
   return accentTheme === 'azul' ? null : `accent-${accentTheme}`
 }
+
+/** Fixed grayscale palette for "professional" PNG/PDF exports — independent of whatever accent
+ * color or light/dark mode the user happens to be editing in, so a plan handed to a client or
+ * contractor always reads as a standard black-on-white technical drawing. Five shades from near-
+ * black to mid-gray keep overlapping categories distinguishable without introducing any hue. */
+export const PRINT_PALETTE: ThemePalette = {
+  structure: '#1e293b',
+  structureSoft: 'rgba(30, 41, 59, 0.08)',
+  accent: '#334155',
+  accentAlt: '#475569',
+  accentSoft: 'rgba(51, 65, 85, 0.08)',
+  warning: '#64748b',
+  warningSoft: 'rgba(100, 116, 139, 0.08)',
+  danger: '#94a3b8',
+  dangerSoft: 'rgba(148, 163, 184, 0.08)',
+  gridLine: '#e5e7eb',
+  gridLineStrong: '#d1d5db',
+  canvasBg: '#ffffff',
+  surfaceBorder: '#d1d5db',
+  textSecondary: '#334155',
+}
