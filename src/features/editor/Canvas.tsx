@@ -37,6 +37,25 @@ const WHEEL_ZOOM_STEP = 1.05
 const MIN_ELEMENT_SIZE = 20
 const MIN_AREA_DRAFT = 6
 const WALL_JOIN_RADIUS_PX = 14
+const WALL_ANGLE_SNAP_DEG = 6
+
+/** Magnetically pulls a new wall segment to horizontal/vertical: if the raw angle from `from` to
+ * `to` is within `WALL_ANGLE_SNAP_DEG` of a cardinal direction (0/90/180/270°), the point is
+ * projected onto that exact direction at the same distance — same idea as the vertex/grid snaps
+ * already in play, just for angle instead of position. Left alone outside the threshold so
+ * intentionally diagonal walls still draw freely. */
+function snapWallAngle(from: Point, to: Point): Point {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  const distance = Math.hypot(dx, dy)
+  if (distance === 0) return to
+  const angle = Math.atan2(dy, dx)
+  const HALF_PI = Math.PI / 2
+  const nearest = Math.round(angle / HALF_PI) * HALF_PI
+  const diff = Math.atan2(Math.sin(angle - nearest), Math.cos(angle - nearest))
+  if (Math.abs(diff) > (WALL_ANGLE_SNAP_DEG * Math.PI) / 180) return to
+  return { x: from.x + Math.cos(nearest) * distance, y: from.y + Math.sin(nearest) * distance }
+}
 
 /** Finds the closest existing wall vertex (committed or in the current draft) within snapping range, so new walls can connect to it. */
 function findNearestWallVertex(
@@ -110,6 +129,7 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
   const [wallDraft, setWallDraft] = useState<number[] | null>(null)
   const [wallPreview, setWallPreview] = useState<Point | null>(null)
   const [areaDraft, setAreaDraft] = useState<{ start: Point; current: Point } | null>(null)
+  const [roomDraft, setRoomDraft] = useState<{ start: Point; current: Point } | null>(null)
   const [snapVertex, setSnapVertex] = useState<Point | null>(null)
   const [connectorFromId, setConnectorFromId] = useState<string | null>(null)
   const [connectorPreview, setConnectorPreview] = useState<Point | null>(null)
@@ -381,7 +401,9 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
         return
       }
       const vertex = findNearestWallVertex(rawWorld, visibleElements, wallDraft, scale)
-      const wallSnapped = wallSnapMode === 'grid' ? snapPoint(rawWorld, WALL_SNAP_STEP) : rawWorld
+      const lastPoint = wallDraft ? { x: wallDraft[wallDraft.length - 2], y: wallDraft[wallDraft.length - 1] } : null
+      const wallSnapped =
+        wallSnapMode === 'grid' ? snapPoint(rawWorld, WALL_SNAP_STEP) : lastPoint ? snapWallAngle(lastPoint, rawWorld) : rawWorld
       const point = vertex ?? wallSnapped
       setWallDraft((prev) => (prev ? [...prev, point.x, point.y] : [point.x, point.y]))
       setWallPreview(point)
@@ -391,6 +413,10 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
 
     if (tool === 'area') {
       setAreaDraft({ start: world, current: world })
+    }
+
+    if (tool === 'room') {
+      setRoomDraft({ start: world, current: world })
     }
   }
 
@@ -423,11 +449,15 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
       const vertex = findNearestWallVertex(rawWorld, visibleElements, wallDraft, scale)
       setSnapVertex(vertex)
       if (wallDraft) {
-        const wallSnapped = wallSnapMode === 'grid' ? snapPoint(rawWorld, WALL_SNAP_STEP) : rawWorld
+        const lastPoint = { x: wallDraft[wallDraft.length - 2], y: wallDraft[wallDraft.length - 1] }
+        const wallSnapped =
+          wallSnapMode === 'grid' ? snapPoint(rawWorld, WALL_SNAP_STEP) : snapWallAngle(lastPoint, rawWorld)
         setWallPreview(vertex ?? wallSnapped)
       }
     } else if (tool === 'area' && areaDraft) {
       setAreaDraft((prev) => (prev ? { ...prev, current: world } : prev))
+    } else if (tool === 'room' && roomDraft) {
+      setRoomDraft((prev) => (prev ? { ...prev, current: world } : prev))
     } else if (tool === 'connector' && connectorFromId) {
       setConnectorPreview(rawWorld)
     }
@@ -454,6 +484,19 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
         })
       }
       setAreaDraft(null)
+    }
+
+    if (tool === 'room' && roomDraft) {
+      const x = Math.min(roomDraft.start.x, roomDraft.current.x)
+      const y = Math.min(roomDraft.start.y, roomDraft.current.y)
+      const width = Math.abs(roomDraft.current.x - roomDraft.start.x)
+      const height = Math.abs(roomDraft.current.y - roomDraft.start.y)
+      if (width >= MIN_AREA_DRAFT && height >= MIN_AREA_DRAFT) {
+        // A closed 5-point loop (back to the start corner) — same WallElement shape the free-hand
+        // wall tool produces when you manually click back to your first point.
+        commitWall([x, y, x + width, y, x + width, y + height, x, y + height, x, y])
+      }
+      setRoomDraft(null)
     }
   }
 
@@ -844,6 +887,36 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
                 dash={[10 / scale, 6 / scale]}
                 fill={colors.accentSoft}
                 listening={false}
+              />
+            )}
+
+            {!isExporting && roomDraft && (
+              <Rect
+                x={Math.min(roomDraft.start.x, roomDraft.current.x)}
+                y={Math.min(roomDraft.start.y, roomDraft.current.y)}
+                width={Math.abs(roomDraft.current.x - roomDraft.start.x)}
+                height={Math.abs(roomDraft.current.y - roomDraft.start.y)}
+                stroke={colors.accent}
+                strokeWidth={5 / scale}
+                dash={[10 / scale, 6 / scale]}
+                listening={false}
+              />
+            )}
+
+            {!isExporting && showMeasurements && roomDraft && (
+              <WallDimensions
+                points={(() => {
+                  const x = Math.min(roomDraft.start.x, roomDraft.current.x)
+                  const y = Math.min(roomDraft.start.y, roomDraft.current.y)
+                  const width = Math.abs(roomDraft.current.x - roomDraft.start.x)
+                  const height = Math.abs(roomDraft.current.y - roomDraft.start.y)
+                  return [x, y, x + width, y, x + width, y + height, x, y + height, x, y]
+                })()}
+                scale={scale}
+                unit={measurementUnit}
+                metersPerWorldUnit={metersPerWorldUnit}
+                color={colors.accent}
+                idPrefix="room-draft"
               />
             )}
 

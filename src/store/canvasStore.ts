@@ -3,7 +3,7 @@ import { zoomAtPoint, type Point } from '@/lib/geometry'
 import { DEFAULT_METERS_PER_GRID_CELL, type MeasurementUnit } from '@/lib/units'
 import { generateId } from '@/lib/id'
 
-export type Tool = 'select' | 'wall' | 'area' | 'connector'
+export type Tool = 'select' | 'wall' | 'room' | 'area' | 'connector'
 export type WallSnapMode = 'free' | 'grid'
 
 /** 10 world units = 0.25m, so wall points land on quarter-meter increments in "grid" mode. */

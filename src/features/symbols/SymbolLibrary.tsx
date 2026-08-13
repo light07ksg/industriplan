@@ -13,6 +13,7 @@ import {
   LayoutGrid,
   MousePointer2,
   Package,
+  RectangleHorizontal,
   Route,
   Search,
   ShieldAlert,
@@ -79,6 +80,12 @@ const TIER_OPTIONS: { id: SymbolTier; label: string; hint: string }[] = [
 const TOOLS: { id: Tool; label: string; hint: string; icon: typeof MousePointer2 }[] = [
   { id: 'select', label: 'Seleccionar', hint: 'Seleccionar, mover, rotar y escalar elementos', icon: MousePointer2 },
   { id: 'wall', label: 'Pared', hint: 'Clic para poner puntos, doble clic o Enter para terminar', icon: Route },
+  {
+    id: 'room',
+    label: 'Rectángulo',
+    hint: 'Clic y arrastra de una esquina a la opuesta para crear una habitación rectangular completa',
+    icon: RectangleHorizontal,
+  },
   { id: 'area', label: 'Área', hint: 'Clic y arrastra para dibujar un área', icon: Square },
   {
     id: 'connector',
