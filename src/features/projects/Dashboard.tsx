@@ -6,6 +6,7 @@ import { ProfilePanel } from '@/components/ProfilePanel'
 import { SettingsPanel } from '@/components/SettingsPanel'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { deleteProject, listProjects, type ProjectRow } from './projectsApi'
+import { ProjectThumbnail } from './ProjectThumbnail'
 
 export function Dashboard() {
   const [projects, setProjects] = useState<ProjectRow[]>([])
@@ -159,8 +160,8 @@ export function Dashboard() {
                 {deletingId === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
               </button>
               <button onClick={() => openProject(p)} className="flex flex-col items-start gap-3 text-left">
-                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-accent-soft text-accent">
-                  <FolderOpen className="h-5 w-5" />
+                <div className="aspect-[4/3] w-full overflow-hidden rounded-md border border-surface-border">
+                  <ProjectThumbnail snapshot={p.canvas_data} className="h-full w-full" />
                 </div>
                 <div className="min-w-0">
                   <p className="truncate pr-6 text-sm font-medium text-text-primary">{p.name}</p>
