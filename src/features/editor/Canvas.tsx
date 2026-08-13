@@ -7,6 +7,7 @@ import {
   useCanvasStore,
   type CanvasElement,
   type WallOpeningElement,
+  type WallSnapMode,
   DEFAULT_LAYER_FOR_TYPE,
   WALL_SNAP_STEP,
   WALL_THICKNESS,
@@ -93,6 +94,78 @@ function findNearestWallVertex(
   return best
 }
 
+const ALIGN_SNAP_PX = 6
+
+/** Checks the candidate point's X and Y against every other existing wall vertex (committed walls,
+ * plus earlier points in the current draft) and gently pulls onto the closest one within range —
+ * the "this lines up with that other wall" nudge, e.g. the far side of a room snapping level with
+ * the near side. Independent of and on top of the angle-snap: that one fixes direction relative to
+ * the *last* point, this fixes position relative to *any* point, on each axis separately. */
+function findAlignmentSnap(
+  point: Point,
+  elements: CanvasElement[],
+  wallDraft: number[] | null,
+  scale: number,
+): { point: Point; guideX: number | null; guideY: number | null } {
+  const threshold = ALIGN_SNAP_PX / scale
+  let bestX: number | null = null
+  let bestXDist = threshold
+  let bestY: number | null = null
+  let bestYDist = threshold
+
+  const check = (x: number, y: number) => {
+    const dx = Math.abs(x - point.x)
+    if (dx < bestXDist) {
+      bestXDist = dx
+      bestX = x
+    }
+    const dy = Math.abs(y - point.y)
+    if (dy < bestYDist) {
+      bestYDist = dy
+      bestY = y
+    }
+  }
+
+  for (const el of elements) {
+    if (el.type !== 'wall') continue
+    for (let i = 0; i < el.points.length; i += 2) check(el.points[i], el.points[i + 1])
+  }
+  // The most recent draft point is skipped — it's the pivot the angle-snap already measures
+  // against, so aligning to it here would just be redundant with that.
+  if (wallDraft) {
+    for (let i = 0; i < wallDraft.length - 2; i += 2) check(wallDraft[i], wallDraft[i + 1])
+  }
+
+  return {
+    point: { x: bestX ?? point.x, y: bestY ?? point.y },
+    guideX: bestX,
+    guideY: bestY,
+  }
+}
+
+/** Combines all three wall-drawing assists into the single next point: an exact vertex snap (to
+ * join/close onto an existing corner) wins outright; otherwise, in free-draw mode, the angle-snap
+ * and alignment-snap both apply (in grid mode the fixed step spacing is the assist instead). */
+function computeWallDraftPoint(
+  rawWorld: Point,
+  wallDraft: number[] | null,
+  wallSnapMode: WallSnapMode,
+  elements: CanvasElement[],
+  scale: number,
+): { point: Point; vertex: Point | null; guideX: number | null; guideY: number | null } {
+  const vertex = findNearestWallVertex(rawWorld, elements, wallDraft, scale)
+  if (vertex) return { point: vertex, vertex, guideX: null, guideY: null }
+
+  if (wallSnapMode === 'grid') {
+    return { point: snapPoint(rawWorld, WALL_SNAP_STEP), vertex: null, guideX: null, guideY: null }
+  }
+
+  const lastPoint = wallDraft ? { x: wallDraft[wallDraft.length - 2], y: wallDraft[wallDraft.length - 1] } : null
+  const angleSnapped = lastPoint ? snapWallAngle(lastPoint, rawWorld) : rawWorld
+  const aligned = findAlignmentSnap(angleSnapped, elements, wallDraft, scale)
+  return { point: aligned.point, vertex: null, guideX: aligned.guideX, guideY: aligned.guideY }
+}
+
 /** Midpoint and distance between two touches, in coordinates relative to `rect` (the canvas
  * container's bounding rect) — the same coordinate space `zoomAtPoint` expects. */
 function getPinchInfo(touches: TouchList, rect: DOMRect): { mid: Point; distance: number } {
@@ -132,6 +205,7 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
   const [areaDraft, setAreaDraft] = useState<{ start: Point; current: Point } | null>(null)
   const [roomDraft, setRoomDraft] = useState<{ start: Point; current: Point } | null>(null)
   const [snapVertex, setSnapVertex] = useState<Point | null>(null)
+  const [alignGuides, setAlignGuides] = useState<{ x: number | null; y: number | null }>({ x: null, y: null })
   const [connectorFromId, setConnectorFromId] = useState<string | null>(null)
   const [connectorPreview, setConnectorPreview] = useState<Point | null>(null)
   const [isExporting, setIsExporting] = useState(false)
@@ -229,6 +303,7 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
     setWallPreview(null)
     setAreaDraft(null)
     setSnapVertex(null)
+    setAlignGuides({ x: null, y: null })
     setConnectorFromId(null)
     setConnectorPreview(null)
   }, [tool])
@@ -246,12 +321,14 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
     setWallDraft(null)
     setWallPreview(null)
     setSnapVertex(null)
+    setAlignGuides({ x: null, y: null })
   }
 
   const cancelWallDraft = () => {
     setWallDraft(null)
     setWallPreview(null)
     setSnapVertex(null)
+    setAlignGuides({ x: null, y: null })
   }
 
   useEffect(() => {
@@ -407,14 +484,11 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
         commitWall(wallDraft)
         return
       }
-      const vertex = findNearestWallVertex(rawWorld, visibleElements, wallDraft, scale)
-      const lastPoint = wallDraft ? { x: wallDraft[wallDraft.length - 2], y: wallDraft[wallDraft.length - 1] } : null
-      const wallSnapped =
-        wallSnapMode === 'grid' ? snapPoint(rawWorld, WALL_SNAP_STEP) : lastPoint ? snapWallAngle(lastPoint, rawWorld) : rawWorld
-      const point = vertex ?? wallSnapped
-      setWallDraft((prev) => (prev ? [...prev, point.x, point.y] : [point.x, point.y]))
-      setWallPreview(point)
-      setSnapVertex(vertex)
+      const result = computeWallDraftPoint(rawWorld, wallDraft, wallSnapMode, visibleElements, scale)
+      setWallDraft((prev) => (prev ? [...prev, result.point.x, result.point.y] : [result.point.x, result.point.y]))
+      setWallPreview(result.point)
+      setSnapVertex(result.vertex)
+      setAlignGuides({ x: result.guideX, y: result.guideY })
       return
     }
 
@@ -453,13 +527,11 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
     const world = snapEnabled ? snapPoint(rawWorld, gridSize) : rawWorld
 
     if (tool === 'wall') {
-      const vertex = findNearestWallVertex(rawWorld, visibleElements, wallDraft, scale)
-      setSnapVertex(vertex)
+      const result = computeWallDraftPoint(rawWorld, wallDraft, wallSnapMode, visibleElements, scale)
+      setSnapVertex(result.vertex)
+      setAlignGuides({ x: result.guideX, y: result.guideY })
       if (wallDraft) {
-        const lastPoint = { x: wallDraft[wallDraft.length - 2], y: wallDraft[wallDraft.length - 1] }
-        const wallSnapped =
-          wallSnapMode === 'grid' ? snapPoint(rawWorld, WALL_SNAP_STEP) : snapWallAngle(lastPoint, rawWorld)
-        setWallPreview(vertex ?? wallSnapped)
+        setWallPreview(result.point)
       }
     } else if (tool === 'area' && areaDraft) {
       setAreaDraft((prev) => (prev ? { ...prev, current: world } : prev))
@@ -860,6 +932,38 @@ export function Canvas({ readOnly = false }: CanvasProps = {}) {
                 </Group>
               )
             })}
+
+            {!isExporting &&
+              tool === 'wall' &&
+              (alignGuides.x !== null || alignGuides.y !== null) &&
+              (() => {
+                const viewTopLeft = toWorld({ x: 0, y: 0 }, scale, position)
+                const viewBottomRight = toWorld({ x: size.width, y: size.height }, scale, position)
+                return (
+                  <>
+                    {alignGuides.x !== null && (
+                      <Line
+                        points={[alignGuides.x, viewTopLeft.y, alignGuides.x, viewBottomRight.y]}
+                        stroke={colors.accent}
+                        strokeWidth={1 / scale}
+                        dash={[6 / scale, 6 / scale]}
+                        opacity={0.45}
+                        listening={false}
+                      />
+                    )}
+                    {alignGuides.y !== null && (
+                      <Line
+                        points={[viewTopLeft.x, alignGuides.y, viewBottomRight.x, alignGuides.y]}
+                        stroke={colors.accent}
+                        strokeWidth={1 / scale}
+                        dash={[6 / scale, 6 / scale]}
+                        opacity={0.45}
+                        listening={false}
+                      />
+                    )}
+                  </>
+                )
+              })()}
 
             {!isExporting && wallDraft && (
               <Line
